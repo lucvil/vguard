@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"runtime"
 	"sync"
+
+	"github.com/sirupsen/logrus"
 )
 
 /*
@@ -34,8 +35,11 @@ var metre latencyMetre
 var vgInst sync.WaitGroup
 
 func init() {
+	//初期パラメータを設定
 	loadCmdParameters()
+	//ログファイルを設定
 	setLogger()
+	//config/cluster_localhost.confからサーバー情報をさがす
 	parseConf(NumOfConn)
 	fetchKeys(Threshold, ServerID)
 	initConns(NumOfConn)
@@ -60,12 +64,14 @@ func init() {
 }
 
 func main() {
+	//CPUの最大利用数の設定
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	//待機グループのカウンターの増加
 	vgInst.Add(1)
 
 	log.Infof("V-Guard instance starts now")
-
+	//非同期処理の開始(本体)
 	go start()
-
+	//vgInstのカウンターが0になるまでブロックします。
 	vgInst.Wait()
 }

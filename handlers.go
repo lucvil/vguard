@@ -74,8 +74,10 @@ func dialSendBack(m interface{}, encoder *gob.Encoder, phaseNumber int) {
 	}
 }
 
+// proposer or validator
 func takingInitRoles(proposer ServerId) {
 	if proposer == ServerId(ServerID) {
+		// function of proposer
 		go runAsProposer(proposer)
 	} else {
 		proposerLookup.Lock()
@@ -84,6 +86,7 @@ func takingInitRoles(proposer ServerId) {
 		}
 		proposerLookup.Unlock()
 
+		// function of validator
 		go runAsValidator()
 	}
 }

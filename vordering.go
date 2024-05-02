@@ -48,6 +48,7 @@ func (r *IDRecorder) GetLastIdx() int {
 //	r.lastIdx = len(r.blockIDs)
 //}
 
+// collect order and make entry
 func startOrderingPhaseA(i int) {
 
 	shuffle := struct {
@@ -81,6 +82,8 @@ func startOrderingPhaseA(i int) {
 			continue
 		}
 
+		// shuffle.counter >= BatchSize -> do below code
+
 		serializedEntries, err := serialization(shuffle.entries)
 		if err != nil {
 			log.Errorf("serialization failed, err: %v", err)
@@ -89,6 +92,7 @@ func startOrderingPhaseA(i int) {
 
 		newBlockId := getLogIndex()
 
+		// create date for order phase a
 		postEntry := ProposerOPAEntry{
 			Booth:   booMgr.b[getBoothID()],
 			BlockId: newBlockId,
@@ -96,6 +100,7 @@ func startOrderingPhaseA(i int) {
 			Hash:    getDigest(serializedEntries),
 		}
 
+		//peformance metre
 		if PerfMetres {
 			if newBlockId%LatMetreInterval == 0 {
 				metre.recordStartTime(newBlockId)
@@ -103,6 +108,8 @@ func startOrderingPhaseA(i int) {
 		}
 
 		incrementLogIndex()
+		//booth情報の更新コードを入れる
+
 		orderingBoothID := getBoothID()
 
 		blockOrderFrag := blockSnapshot{
@@ -131,6 +138,7 @@ func startOrderingPhaseA(i int) {
 		shuffle.counter = 0
 		shuffle.entries = make(map[int]Entry)
 
+		//broadcast
 		broadcastToBooth(postEntry, OPA, orderingBoothID)
 
 		if YieldCycle != 0 {
@@ -144,6 +152,7 @@ func startOrderingPhaseA(i int) {
 	}
 }
 
+// input->ValidatorOPAReply
 func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 
 	ordSnapshot.RLock()
@@ -158,6 +167,10 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 	currBooth := blockOrderFrag.booth
 
 	blockOrderFrag.Lock()
+
+	//ブロックの注文情報のロックを取得し、現在のシグネチャ数を確認します。
+	//シグネチャの数が既に閾値に達していれば、そのブロックはすでに注文済みであるため処理を終了します。
+	//シグネチャの数が閾値未満であれば、新しいシグネチャ（m.ParSig）を追加します。
 	indicator := len(blockOrderFrag.sigs)
 
 	if indicator == Threshold {
@@ -185,6 +198,7 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 		return
 	}
 
+	///複数の署名断片から完全なデジタル署名を復元するための関数
 	thresholdSig, err := PenRecovery(aggregatedSigs, &blockOrderFrag.hash, PublicPoly)
 	if err != nil {
 		log.Errorf("%s | blockId: %v | PenRecovery failed | len(sigShares): %v | booth: %v| error: %v",

@@ -2,11 +2,12 @@ package main
 
 import (
 	"errors"
-	"gonum.org/v1/gonum/stat/combin"
 	"io"
 	"strconv"
 	"strings"
 	"sync"
+
+	"gonum.org/v1/gonum/stat/combin"
 )
 
 type Booth struct {
@@ -30,12 +31,13 @@ func (b *Booth) String() (string, error) {
 	return strings.Join(out, ""), nil
 }
 
-//booMgr is the queue of all enqueued booths
+// booMgr is the queue of all enqueued booths
 var booMgr = struct {
 	sync.RWMutex
 	b []Booth
 }{}
 
+// booMgrnにIDが0と1のものがかならず入るようにしてboothを作成
 func prepareBooths(numOfConns, boothsize int) {
 	total, boothsize := numOfConns-1, boothsize-1
 
@@ -81,7 +83,6 @@ func prepareBooths(numOfConns, boothsize int) {
 var broadcastError = false
 
 // broadcastToBooth is used by the proposer to broadcast a given message to all members in a given booth
-//
 func broadcastToBooth(e interface{}, phase int, boothID int) {
 	if broadcastError {
 		return
@@ -160,7 +161,6 @@ func broadcastToNewBooth(regularMsg interface{}, phase int, boothID int, newMemb
 }
 
 // broadcastToAll is used by the proposer to broadcast a given message to all connected members.
-//
 func broadcastToAll(e interface{}, phase int) {
 	if broadcastError {
 		return

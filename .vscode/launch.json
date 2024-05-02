@@ -1,0 +1,15 @@
+{
+    "version": "0.1.0",
+    "configurations": [
+        {
+            "name": "launch",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "/home/lucvil/vguardbft",
+            "preLaunchTask": "run-script-with-proposer",
+            "env": {},
+            "args": []
+        }
+    ]
+}

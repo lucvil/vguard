@@ -20,6 +20,7 @@ func mockRandomBytes(length int, charset string) []byte {
 func txGenerator(len int) {
 	charset := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
+	// NumOfValidators, "w", 1, "number of worker threads"
 	for i := 0; i < NumOfValidators; i++ {
 		q := make(chan *Proposal, MaxQueue)
 

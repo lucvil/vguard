@@ -18,9 +18,12 @@ var valiOrdJobStack = struct {
 	s map[int64]chan int // <OrdInstID, chan 1>
 }{s: make(map[int64]chan int)}
 
+// return signature
 func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 	log.Debugf("%s | ProposerOPBEntry received (BlockID: %d) @ %v", rpyPhase[OPA], m.BlockId, time.Now().UTC().String())
 
+	//受信したブロックIDが既に使用されているかどうかを確認します。
+	//既に使用されていれば、ロックを解除し、警告ログを出力して関数を終了します。
 	ordSnapshot.Lock()
 	if _, ok := ordSnapshot.m[m.BlockId]; ok {
 		ordSnapshot.Unlock()
@@ -46,11 +49,14 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 		booth:   m.Booth,
 	}
 
+	//validation??
 	valiOrdJobStack.Lock()
 	if s, ok := valiOrdJobStack.s[m.BlockId]; !ok {
+		//容量1の整数型バッファ付きチャンネルを作成する式
 		s := make(chan int, 1)
 		valiOrdJobStack.s[m.BlockId] = s
 		valiOrdJobStack.Unlock()
+		//valiOrdJobStack.s[m.BlockId]には、チャンネルが格納されているので、そのチャンネルに1を送信する
 		s <- 1
 	} else {
 		valiOrdJobStack.Unlock()
@@ -59,6 +65,7 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 
 	cmtSnapshot.Unlock()
 
+	//署名を作成します
 	sig, err := PenSign(m.Hash)
 	if err != nil {
 		log.Errorf("%s | PenSign failed, err: %v", rpyPhase[OPA], err)
@@ -72,6 +79,7 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 
 	log.Debugf("%s | msg: %v; ps: %v", rpyPhase[OPA], m.BlockId, hex.EncodeToString(sig))
 
+	//返信を送信します(OPB)
 	dialSendBack(postReply, encoder, OPA)
 }
 
@@ -82,6 +90,7 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 		log.Debugf("%s | Sync up -> ProposerOPBEntry received (BlockID: %d) @ %v", rpyPhase[CPA], m.BlockId, time.Now().UTC().String())
 	}
 
+	//ブロックのハッシュと組み合わせ署名を検証します。
 	err := PenVerify(m.Hash, m.CombSig, PublicPoly)
 	if err != nil {
 		log.Errorf("%v: PenVerify failed | err: %v | BlockID: %v | m.Hash: %v| CombSig: %v",

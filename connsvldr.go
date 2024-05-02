@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-//validators' connections:
+// validators' connections:
 func runAsValidator() {
 	defer proposerLookup.RUnlock()
 	proposerLookup.RLock()
@@ -126,6 +126,7 @@ func receivingOADialMessages(coordinatorId ServerId) {
 			continue
 		}
 
+		//メッセージとエンコーダー（orderPhaseDialogInfo.enc）が渡されます
 		go validatingOAEntry(&m, orderPhaseDialogInfo.enc)
 	}
 }

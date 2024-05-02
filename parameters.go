@@ -114,6 +114,7 @@ var (
 	//SleepTimeInSlowMode int
 )
 
+// 初期パラメータを設定
 func loadCmdParameters() {
 	flag.IntVar(&BatchSize, "b", 1, "batch size")
 	flag.IntVar(&MsgSize, "m", 32, "message size")

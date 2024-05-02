@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path"
 	"runtime"
 	"strconv"
+
+	"github.com/sirupsen/logrus"
 )
 
 func setLogger() {
