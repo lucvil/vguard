@@ -2,7 +2,7 @@
 
 # keyGen
 THRESHOLD_NUM=2
-PARTICIPANT_NUM=6
+PARTICIPANT_NUM=7
 cd keyGen
 go build generator.go
 ./generator -t=$THRESHOLD_NUM -n=$PARTICIPANT_NUM

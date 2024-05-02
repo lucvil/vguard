@@ -29,12 +29,14 @@ func parseConf(numOfServers int) {
 	}
 
 	//first line is explanation
-	if len(fileRows) != numOfServers+1 {
+	// dont stop even if fileRow > numOfServers + 1
+	if len(fileRows) < numOfServers+1 {
 		log.Errorf("Going to panic | fileRows: %v | n: %v", len(fileRows), numOfServers)
 		panic(errors.New("number of servers in config file does not match with provided $n$"))
 	}
 
-	for i := 0; i < len(fileRows); i++ {
+	// for i := 0; i < len(fileRows); i++ {
+	for i := 0; i < numOfServers+1; i++ {
 		// Fist line is instructions
 		if i == 0 {
 			continue
