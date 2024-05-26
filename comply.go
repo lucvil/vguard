@@ -66,7 +66,7 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 	cmtSnapshot.Unlock()
 
 	//署名を作成します
-	_, privateShareVOA := fetchKeysByBoothId(Threshold, ServerID)
+	_, privateShareVOA := fetchKeysByBoothId(Threshold, ServerID, m.Booth.ID)
 	sig, err := PenSign(m.Hash, privateShareVOA)
 	if err != nil {
 		log.Errorf("%s | PenSign failed, err: %v", rpyPhase[OPA], err)
@@ -92,7 +92,7 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 	}
 
 	//ブロックのハッシュと組み合わせ署名を検証します。
-	publicPolyVOB, _ := fetchKeysByBoothId(Threshold, ServerID)
+	publicPolyVOB, _ := fetchKeysByBoothId(Threshold, ServerID, m.Booth.ID)
 	err := PenVerify(m.Hash, m.CombSig, publicPolyVOB)
 	if err != nil {
 		log.Errorf("%v: PenVerify failed | err: %v | BlockID: %v | m.Hash: %v| CombSig: %v",
@@ -207,7 +207,7 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 		vgTxData.Unlock()
 	}
 
-	_, privateShareVCA := fetchKeysByBoothId(Threshold, ServerID)
+	_, privateShareVCA := fetchKeysByBoothId(Threshold, ServerID, m.Booth.ID)
 	partialSig, err := PenSign(m.TotalHash, privateShareVCA)
 	if err != nil {
 		log.Errorf("PenSign failed: %v", err)
@@ -263,7 +263,7 @@ func validatingCBEntry(m *ProposerCPBEntry, encoder *gob.Encoder) {
 		<-s
 	}
 
-	publicPolyVCB, _ := fetchKeysByBoothId(Threshold, ServerID)
+	publicPolyVCB, _ := fetchKeysByBoothId(Threshold, ServerID, m.Booth.ID)
 	err := PenVerify(m.Hash, m.ComSig, publicPolyVCB)
 	if err != nil {
 		log.Errorf("%v | PenVerify failed; err: %v", rpyPhase[CPB], err)
