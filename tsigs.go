@@ -17,29 +17,49 @@ import (
 
 var suite = bn256.NewSuite()
 
-// var ServerSecrets [][]byte
-var PublicPoly *share.PubPoly
-var PrivateShare *share.PriShare
+// // var ServerSecrets [][]byte
+// var PublicPoly *share.PubPoly
+// var PrivateShare *share.PriShare
 
-func fetchKeys(t, id int) {
+func fetchKeysByBoothId(t, id int) (*share.PubPoly, *share.PriShare) {
 	//var keys KeyMaster
 	//keys.FetchKeys(t, id)
 	var err error
 
-	PublicPoly, err = fetchPubPoly(t)
+	PublicPoly, err := fetchPubPoly(t)
 	if err != nil {
 		log.Error(err)
 		panic(errors.New("fetchPubPoly failed"))
 	}
 
-	PrivateShare, err = fetchPriShare(id, t)
+	PrivateShare, err := fetchPriShare(id, t)
 	if err != nil {
 		log.Error(err)
 		panic(errors.New("fetchPriShare failed"))
 	}
 
-	return
+	return PublicPoly, PrivateShare
 }
+
+// func fetchKeys(t, id int) {
+// 	//var keys KeyMaster
+// 	//keys.FetchKeys(t, id)
+// 	var err error
+
+// 	PublicPoly, err = fetchPubPoly(t)
+// 	if err != nil {
+// 		log.Error(err)
+// 		panic(errors.New("fetchPubPoly failed"))
+// 	}
+
+// 	PrivateShare, err = fetchPriShare(id, t)
+// 	if err != nil {
+// 		log.Error(err)
+// 		panic(errors.New("fetchPriShare failed"))
+// 	}
+
+// 	return
+// }
 
 type KeyMaster struct {
 	PubPoly  *share.PubPoly
@@ -162,8 +182,8 @@ func getDigest(x []byte) []byte {
 //	return digest[:], sig, err
 //}
 
-func PenSign(msg []byte) ([]byte, error) {
-	return tbls.Sign(suite, PrivateShare, msg)
+func PenSign(msg []byte, privateShare *share.PriShare) ([]byte, error) {
+	return tbls.Sign(suite, privateShare, msg)
 }
 
 func PenVerifyPartially(msg, sig []byte, pub *share.PubPoly) error {

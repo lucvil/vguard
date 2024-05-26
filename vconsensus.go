@@ -203,7 +203,8 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	log.Infof("start consensus phase_b_pro of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 	log.Debugf(" ** votes sufficient | rangeId: %v | votes: %d | sid: %v", m.ConsInstID, len(partialSig), sid)
 
-	recoveredSig, err := PenRecovery(partialSig, &fetchedTotalHash, PublicPoly)
+	publicPolyPCA, _ := fetchKeysByBoothId(Threshold, ServerID)
+	recoveredSig, err := PenRecovery(partialSig, &fetchedTotalHash, publicPolyPCA)
 	if err != nil {
 		log.Errorf("%s | PenRecovery failed | len(sigShares): %d | error: %v", cmdPhase[CPA], len(partialSig), err)
 		return

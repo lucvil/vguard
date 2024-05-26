@@ -41,7 +41,7 @@ func init() {
 	setLogger()
 	//config/cluster_localhost.confからサーバー情報をさがす
 	parseConf(NumOfConn)
-	fetchKeys(Threshold, ServerID)
+	// fetchKeys(Threshold, ServerID)
 	initConns(NumOfConn)
 	metre.init()
 

@@ -203,7 +203,8 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 	}
 
 	///複数の署名断片から完全なデジタル署名を復元するための関数
-	thresholdSig, err := PenRecovery(aggregatedSigs, &blockOrderFrag.hash, PublicPoly)
+	publicPolyPOB, _ := fetchKeysByBoothId(Threshold, ServerID)
+	thresholdSig, err := PenRecovery(aggregatedSigs, &blockOrderFrag.hash, publicPolyPOB)
 	if err != nil {
 		log.Errorf("%s | blockId: %v | PenRecovery failed | len(sigShares): %v | booth: %v| error: %v",
 			cmdPhase[OPB], m.BlockId, len(aggregatedSigs), currBooth, err)
