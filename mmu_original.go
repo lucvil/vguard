@@ -1,12 +1,8 @@
-package main
+// package main
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
-	"fmt"
 	"io"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -35,52 +31,11 @@ func (b *Booth) String() (string, error) {
 	return strings.Join(out, ""), nil
 }
 
-// // booMgr is the queue of all enqueued booths
-// var booMgr = struct {
-// 	sync.RWMutex
-// 	b []Booth
-// }{}
-
 // booMgr is the queue of all enqueued booths
 var booMgr = struct {
 	sync.RWMutex
-	b     []Booth
-	index map[string]int
-}{index: make(map[string]int)}
-
-// generateHash generates a SHA-256 hash of the given slice of integers
-func generateBoothHash(indices []int) string {
-	hasher := sha256.New()
-	for _, v := range indices {
-		hasher.Write([]byte(fmt.Sprintf("%d", v)))
-	}
-	return hex.EncodeToString(hasher.Sum(nil))
-}
-
-// checkExactMatchInBooMgr checks if any Booth's Indices exactly match the pattern using the index
-func checkExactMatchInBooMgr(pattern []int) int {
-	sort.Ints(pattern)
-	key := generateBoothHash(pattern)
-
-	// Use a single write lock to ensure atomicity
-	booMgr.Lock()
-	defer booMgr.Unlock()
-
-	nowBoothId, exists := booMgr.index[key]
-
-	if !exists {
-		// Add the new booth to the booMgr
-		newBooth := Booth{
-			ID:      len(booMgr.b),
-			Indices: pattern,
-		}
-		booMgr.b = append(booMgr.b, newBooth)
-		booMgr.index[generateBoothHash(pattern)] = newBooth.ID
-		nowBoothId = newBooth.ID
-	}
-
-	return nowBoothId
-}
+	b []Booth
+}{}
 
 // booMgrnにIDが0と1のものがかならず入るようにしてboothを作成
 func prepareBooths(numOfConns, boothsize int) {
