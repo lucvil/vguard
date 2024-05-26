@@ -43,7 +43,7 @@ func setLogger() {
 		}
 
 		log.Out = os.Stdout
-		fileName := fmt.Sprintf("./logs/s%d/n_%d_b%d_d%d.log", ServerID, NumOfConn, BatchSize, Delay)
+		fileName := fmt.Sprintf("./logs/s%d/n_%d_boo%d_b%d_d%d.log", ServerID, NumOfConn, BoothSize, BatchSize, Delay)
 		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			log.Info("Failed to log to file, using default stderr")

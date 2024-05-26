@@ -10,6 +10,7 @@ ordering and consensus phases.
 import (
 	"encoding/hex"
 	"sync"
+	"time"
 )
 
 // ordSnapshot stores consensus information for each block in the ordering phase
@@ -66,7 +67,9 @@ func storeVgTx(consInstID int) {
 	cmtBoo := vgTxData.boo[consInstID]
 	vgTxData.RUnlock()
 
-	log.Infof("VGTX %d in Cmt Booth: %v | total # of tx: %d", consInstID, cmtBoo.Indices, vgrec.GetLastIdx()*BatchSize)
+	nowTime := time.Now().UnixMilli()
+
+	log.Infof("VGTX %d in Cmt Booth: %v | total # of tx: %d, Time: %d", consInstID, cmtBoo.Indices, vgrec.GetLastIdx()*BatchSize, nowTime)
 
 	for key, chunk := range ordBoo { //map<boo, [][]entries>
 		log.Infof("ordering booth: %v | len(ordBoo[%v]): %v", key, key, len(chunk))

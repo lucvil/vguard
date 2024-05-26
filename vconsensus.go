@@ -23,6 +23,9 @@ func startConsensusPhaseA() {
 		commitBooth := booMgr.b[commitBoothID]
 		time.Sleep(time.Duration(ConsInterval) * time.Millisecond)
 
+		// start time
+		nowTime := time.Now().UnixMilli()
+
 		blockIDRange := vgrec.GetIDRange()
 
 		if blockIDRange == nil {
@@ -41,6 +44,9 @@ func startConsensusPhaseA() {
 			return
 		}
 
+		// log.Infof("start consensus of consInstId: %d, blockIDRange: %d,Timestamp: %d", consInstID, blockIDRange, nowTime)
+		log.Infof("start consensus of consInstId: %d,Timestamp: %d, lenBlockRange: %d", consInstID, nowTime, len(blockIDRange))
+
 		blockHashesInRange := make(map[int64][]byte)
 
 		vgTxData.Lock()
@@ -50,6 +56,8 @@ func startConsensusPhaseA() {
 		var newMembers []int
 		var resentOPBEntries []ProposerOPBEntry
 
+		nowTime = time.Now().UnixMilli()
+		log.Infof("start consensus phase_a_make_block_pro of consInstId: %d,Timestamp: %d, lenBlockRange: %d", consInstID, nowTime, len(blockIDRange))
 		for _, blockID := range blockIDRange {
 			var blockEntries []Entry
 
@@ -112,6 +120,8 @@ func startConsensusPhaseA() {
 			vgTxData.boo[consInstID] = commitBooth
 			vgTxData.Unlock()
 		}
+		nowTime = time.Now().UnixMilli()
+		log.Infof("end consensus phase_a_make_block_pro of consInstId: %d,Timestamp: %d, lenBlockRange: %d", consInstID, nowTime, len(blockIDRange))
 
 		serialized, err := serialization(blockHashesInRange)
 
@@ -130,6 +140,9 @@ func startConsensusPhaseA() {
 			RangeHash:      blockHashesInRange,
 			TotalHash:      totalHash,
 		}
+
+		nowTime = time.Now().UnixMilli()
+		log.Infof("end consensus phase_a_pro of consInstId: %d,Timestamp: %d, lenBlockRange: %d", consInstID, nowTime, len(blockIDRange))
 
 		if newMembers == nil {
 			broadcastToBooth(entryCA, CPA, commitBoothID)
@@ -150,6 +163,8 @@ func startConsensusPhaseA() {
 }
 
 func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
+
+	nowTime := time.Now().UnixMilli()
 
 	vgTxMeta.RLock()
 	fetchedTotalHash, ok := vgTxMeta.hash[m.ConsInstID]
@@ -185,6 +200,7 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 		return
 	}
 
+	log.Infof("start consensus phase_b_pro of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 	log.Debugf(" ** votes sufficient | rangeId: %v | votes: %d | sid: %v", m.ConsInstID, len(partialSig), sid)
 
 	recoveredSig, err := PenRecovery(partialSig, &fetchedTotalHash, PublicPoly)
@@ -202,8 +218,11 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 
 	broadcastToBooth(entryCB, CPB, residingBooth.ID)
 
-	if !PerfMetres {
-		storeVgTx(m.ConsInstID)
+	nowTime = time.Now().UnixMilli()
+	log.Infof("end consensus of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
+
+	if PerfMetres {
+		// storeVgTx(m.ConsInstID)
 	}
 
 	// Future work: garbage collection

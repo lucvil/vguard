@@ -100,6 +100,10 @@ func startOrderingPhaseA(i int) {
 			Hash:    getDigest(serializedEntries),
 		}
 
+		//start time
+		nowTime := time.Now().UnixMilli()
+		log.Infof("start ordering of block %d, Timestamp: %d", newBlockId, nowTime)
+
 		//peformance metre
 		if PerfMetres {
 			if newBlockId%LatMetreInterval == 0 {
@@ -216,6 +220,8 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 
 	vgrec.Add(m.BlockId)
 
+	//peformance metre
+
 	if PerfMetres {
 		timeNow := time.Now().UTC().String()
 		if m.BlockId%LatMetreInterval == 0 {
@@ -236,4 +242,7 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 	cmtSnapshot.Unlock()
 
 	broadcastToBooth(orderEntry, OPB, currBooth.ID)
+
+	nowTime := time.Now().UnixMilli()
+	log.Infof("end ordering of block %d, Timestamp: %d", m.BlockId, nowTime)
 }

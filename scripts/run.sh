@@ -1,19 +1,19 @@
 #!/bin/bash
 # test in localhost
 ./vginstance -id=$1 -r=$2 \
--b=1 \
--boo=4 \
+-b=100 \
+-boo=$4 \
 -c=$3 \
 -cfp="./config/cluster_localhost.conf" \
 -ci=500 \
--cw=10 \
--d=0 \
+-cw=20 \
+-d=$6 \
 -ed=1 \
 -gc=false \
 -lm=100 \
 -log=4 \
--m=32 \
--ml=10000 \
+-m=$5 \
+-ml=1000000 \
 -pm=true \
 -s=true \
 -w=1 \

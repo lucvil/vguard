@@ -177,6 +177,7 @@ func receivingCADialMessages(coordinatorId ServerId) {
 		}
 
 		go validatingCAEntry(&m, CADialogInfo.enc)
+
 	}
 }
 

@@ -138,8 +138,10 @@ func loadCmdParameters() {
 
 	flag.IntVar(&BoothMode, "bm", 2, "booth mode: 0, 1, or 2")
 	flag.IntVar(&BoothIDOfModeOCSB, "ocsb", 0, "BoothIDOfModeOCSB")
-	flag.IntVar(&BoothIDOfModeOCDBWOP, "ocdbwop", 1, "BoothIDOfModeOCDBWOP")
-	flag.IntVar(&BoothIDOfModeOCDBNOP, "ocdbnop", 5, "BoothIDOfModeOCDBNOP")
+	// flag.IntVar(&BoothIDOfModeOCDBWOP, "ocdbwop", 1, "BoothIDOfModeOCDBWOP")
+	// flag.IntVar(&BoothIDOfModeOCDBNOP, "ocdbnop", 5, "BoothIDOfModeOCDBNOP")
+	flag.IntVar(&BoothIDOfModeOCDBWOP, "ocdbwop", 0, "BoothIDOfModeOCDBWOP")
+	flag.IntVar(&BoothIDOfModeOCDBNOP, "ocdbnop", 0, "BoothIDOfModeOCDBNOP")
 
 	//flag.IntVar(&SlowModeCycleNum, "sm", 3, "# of cycles going in slow mode")
 	//flag.IntVar(&SleepTimeInSlowMode, "smt", 1, "slow mode cycle sleep time (second)")

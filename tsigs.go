@@ -6,17 +6,18 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
+
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/share"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/sign/tbls"
-	"os"
 )
 
 var suite = bn256.NewSuite()
 
-//var ServerSecrets [][]byte
+// var ServerSecrets [][]byte
 var PublicPoly *share.PubPoly
 var PrivateShare *share.PriShare
 

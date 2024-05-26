@@ -144,6 +144,8 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 }
 
 func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
+	nowTime := time.Now().UnixMilli()
+	log.Infof("start consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 
 	log.Debugf("%s | ProposerCPAEntry received (RangeId: %d) @ %v", rpyPhase[CPA], m.ConsInstID, time.Now().UTC().String())
 
@@ -216,6 +218,9 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 
 	dialSendBack(replyCA, encoder, CPA)
 
+	nowTime = time.Now().UnixMilli()
+	log.Infof("end consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
+
 	vgTxMeta.Lock()
 	vgTxMeta.hash[m.ConsInstID] = m.TotalHash
 	vgTxMeta.Unlock()
@@ -230,6 +235,7 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 		valiConsJobStack.Unlock()
 		s <- 1
 	}
+
 }
 
 func validatingCBEntry(m *ProposerCPBEntry, encoder *gob.Encoder) {
@@ -260,7 +266,8 @@ func validatingCBEntry(m *ProposerCPBEntry, encoder *gob.Encoder) {
 		return
 	}
 
-	storeVgTx(m.ConsInstID)
+	// log
+	// storeVgTx(m.ConsInstID)
 
 	//replyCB := ValidatorCPBReply{
 	//	RangeId: m.RangeId,
