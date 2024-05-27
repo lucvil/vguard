@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
@@ -57,6 +58,20 @@ func generateBoothHash(indices []int) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
+func generateBoothKey(booth Booth) {
+	cmdName := "./keyGen/generator"
+	threshold := (len(booth.Indices) / 3) * 2
+	cmdArgs := []string{"-t=" + strconv.Itoa(threshold), "-n=" + strconv.Itoa(len(booth.Indices)), "-b=" + strconv.Itoa(booth.ID)}
+	cmd := exec.Command(cmdName, cmdArgs...)
+	// コマンドの標準出力を取得
+	_, err := cmd.Output()
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+		return
+	}
+
+}
+
 // checkExactMatchInBooMgr checks if any Booth's Indices exactly match the pattern using the index
 func checkExactMatchInBooMgr(pattern []int) int {
 	sort.Ints(pattern)
@@ -77,8 +92,17 @@ func checkExactMatchInBooMgr(pattern []int) int {
 		booMgr.b = append(booMgr.b, newBooth)
 		booMgr.index[generateBoothHash(pattern)] = newBooth.ID
 		nowBoothId = newBooth.ID
+
+		// Generate the key for the new booth
+		generateBoothKey(newBooth)
 	}
 
+	return nowBoothId
+}
+
+func getBoothID() int {
+	pattern := []int{0, 1, 2, 3, 4, 5}
+	nowBoothId := checkExactMatchInBooMgr(pattern)
 	return nowBoothId
 }
 

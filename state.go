@@ -11,14 +11,14 @@ const (
 )
 
 var state = struct {
-	booMu       sync.RWMutex
-	logIndex    int64
-	orderIndex  int64
-	commitIndex int64
+	booMu    sync.RWMutex
+	logIndex int64
+	// orderIndex  int64
+	// commitIndex int64
 
-	serverId ServerId
-	role     int
-	boothID  int
+	// serverId ServerId
+	// role     int
+	boothID int
 }{}
 
 //var boothID = struct {
@@ -33,11 +33,12 @@ func nextBoothID() int {
 	return state.boothID
 }
 
-func getBoothID() int {
-	defer state.booMu.RUnlock()
-	state.booMu.RLock()
-	return state.boothID
-}
+// mmu.goに移管
+// func getBoothID() int {
+// 	defer state.booMu.RUnlock()
+// 	state.booMu.RLock()
+// 	return state.boothID
+// }
 
 func incrementLogIndex() int64 {
 	return atomic.AddInt64(&state.logIndex, 1)

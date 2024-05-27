@@ -25,7 +25,7 @@ func runAsProposer(proposerId ServerId) {
 
 	//boothを作成、ID0とID1はかならず含む
 	//NumOfConn  "c", 6, "max # of connections"
-	prepareBooths(NumOfConn, BoothSize)
+	// prepareBooths(NumOfConn, BoothSize)
 
 	//データを事前に用意、requestQueueに格納
 	txGenerator(MsgSize)

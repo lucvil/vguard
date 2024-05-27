@@ -11,13 +11,13 @@ NETWORK_DELAY=$3
 
 # THRESHOLD_NUM=2
 
-# cd keyGen
-# go build generator.go
-# ./generator -t=$THRESHOLD_NUM -n=$PARTICIPANT_NUM
+cd keyGen
+go build generator.go
+# ./generator -t=$THRESHOLD_NUM -n=$PARTICIPANT_NUM -b=0
 # cp -r keys ../
 
 # build
-# cd ../
+cd ../
 ./scripts/build.sh
 
 # make log folder

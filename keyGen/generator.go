@@ -28,14 +28,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"go.dedis.ch/kyber/v3"
-	"go.dedis.ch/kyber/v3/pairing/bn256"
-	"go.dedis.ch/kyber/v3/share"
 	"os"
 	"path"
 	"runtime"
 	"strconv"
+
+	"github.com/sirupsen/logrus"
+	"go.dedis.ch/kyber/v3"
+	"go.dedis.ch/kyber/v3/pairing/bn256"
+	"go.dedis.ch/kyber/v3/share"
 )
 
 func main() {
@@ -50,15 +51,17 @@ func main() {
 	})
 
 	var (
-		t int //threshold
-		n int //number of participants
+		t       int //threshold
+		n       int //number of participants
+		boothId int //booth ID
 	)
 
 	flag.IntVar(&t, "t", 2, "Threshold")
 	flag.IntVar(&n, "n", 6, "# of participants")
+	flag.IntVar(&boothId, "b", 0, "Booth ID")
 	flag.Parse()
 
-	log.Infof("KeyGen initialized, with t=%v and n=%v", t, n)
+	log.Infof("KeyGen initialized, with t=%v and n=%v and boothId=%d", t, n, boothId)
 
 	suite := bn256.NewSuite()
 
@@ -66,28 +69,28 @@ func main() {
 	secret := suite.G1().Scalar().Pick(rand)
 	priPoly := share.NewPriPoly(suite.G2(), t, secret, rand)
 
-	if err := os.RemoveAll(fmt.Sprintf("./keys/")); err != nil {
+	if err := os.RemoveAll(fmt.Sprintf("./keys/" + strconv.Itoa(boothId) + "/")); err != nil {
 		panic(err)
 	}
 
-	if err := os.Mkdir(fmt.Sprintf("./keys/"), os.ModePerm); err != nil {
+	if err := os.MkdirAll(fmt.Sprintf("./keys/"+strconv.Itoa(boothId)+"/"), os.ModePerm); err != nil {
 		panic(err)
 	}
 
-	err := createPubPoly(priPoly)
+	err := createPubPoly(priPoly, boothId)
 	if err != nil {
 		panic(err)
 	}
-	log.Infof("New PubPoly created at ./keys/vguard_pub.dupe")
+	log.Infof("New PubPoly created at ./keys/%d/vguard_pub.dupe", boothId)
 
-	_, err = createPrivateShare(priPoly, n)
+	_, err = createPrivateShare(priPoly, n, boothId)
 	if err != nil {
 		panic(err)
 	}
-	log.Infof("New %v PriShares created in ./keys/", n)
+	log.Infof("New %v PriShares created in ./keys/%d/", n, boothId)
 }
 
-func createPubPoly(priPoly *share.PriPoly) error {
+func createPubPoly(priPoly *share.PriPoly, boothId int) error {
 	commits := make([]kyber.Point, priPoly.Threshold())
 	var commitBytes [][]byte
 
@@ -99,7 +102,7 @@ func createPubPoly(priPoly *share.PriPoly) error {
 		commitBytes = append(commitBytes, binaryScalar)
 	}
 
-	pubPolyFile, err := os.OpenFile("./keys/vguard_pub.dupe", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	pubPolyFile, err := os.OpenFile("./keys/"+strconv.Itoa(boothId)+"/vguard_pub.dupe", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 	if err != nil {
 		return err
@@ -125,11 +128,11 @@ func createPubPoly(priPoly *share.PriPoly) error {
 	return nil
 }
 
-func createPrivateShare(priPoly *share.PriPoly, n int) ([]*share.PriShare, error) {
+func createPrivateShare(priPoly *share.PriPoly, n int, boothId int) ([]*share.PriShare, error) {
 	priShares := priPoly.Shares(n)
 
 	for _, priShare := range priShares {
-		priPolyShareFile, err := os.OpenFile(fmt.Sprintf("./keys/pri_%d.dupe", priShare.I), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		priPolyShareFile, err := os.OpenFile(fmt.Sprintf("./keys/%d/pri_%d.dupe", boothId, priShare.I), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return nil, err
 		}
