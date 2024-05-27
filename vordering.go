@@ -92,9 +92,11 @@ func startOrderingPhaseA(i int) {
 
 		newBlockId := getLogIndex()
 
+		orderingBoothID := getBoothID()
+
 		// create date for order phase a
 		postEntry := ProposerOPAEntry{
-			Booth:   booMgr.b[getBoothID()],
+			Booth:   booMgr.b[orderingBoothID],
 			BlockId: newBlockId,
 			Entries: shuffle.entries,
 			Hash:    getDigest(serializedEntries),
@@ -113,8 +115,6 @@ func startOrderingPhaseA(i int) {
 
 		incrementLogIndex()
 		//booth情報の更新コードを入れる
-
-		orderingBoothID := getBoothID()
 
 		blockOrderFrag := blockSnapshot{
 			hash:    postEntry.Hash,
@@ -177,11 +177,15 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 	//シグネチャの数が閾値未満であれば、新しいシグネチャ（m.ParSig）を追加します。
 	indicator := len(blockOrderFrag.sigs)
 
-	if indicator == Threshold {
+	threshold := getThreshold(len(currBooth.Indices))
+
+	log.Infof("received OPA reply from %v for block %v, threshold: %d", sid, m.BlockId, threshold)
+
+	if indicator == threshold {
 		blockOrderFrag.Unlock()
 
 		log.Debugf("%s | Block %d already ordered | indicator: %v | Threshold: %v | sid: %v",
-			cmdPhase[OPB], m.BlockId, indicator, Threshold, sid)
+			cmdPhase[OPB], m.BlockId, indicator, threshold, sid)
 		return
 	}
 
@@ -191,20 +195,20 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 
 	blockOrderFrag.Unlock()
 
-	if indicator < Threshold {
+	if indicator < threshold {
 		log.Debugf("%s | insufficient votes for ordering | blockId: %v | indicator: %v | sid: %v",
 			cmdPhase[OPB], m.BlockId, indicator, sid)
 		return
 	}
 
-	if indicator > Threshold {
+	if indicator > threshold {
 		log.Debugf("%s | block %v already broadcastToBooth for ordering | sid: %v", cmdPhase[OPB], m.BlockId, sid)
 		return
 	}
 
-	///複数の署名断片から完全なデジタル署名を復元するための関数
-	publicPolyPOB, _ := fetchKeysByBoothId(Threshold, ServerID, currBooth.ID)
-	thresholdSig, err := PenRecovery(aggregatedSigs, &blockOrderFrag.hash, publicPolyPOB)
+	///複数の署名断片から完全なデジタル署名を復元するための関数s
+	publicPolyPOB, _ := fetchKeysByBoothId(threshold, ServerID, currBooth.ID)
+	thresholdSig, err := PenRecovery(aggregatedSigs, &blockOrderFrag.hash, publicPolyPOB, len(currBooth.Indices))
 	if err != nil {
 		log.Errorf("%s | blockId: %v | PenRecovery failed | len(sigShares): %v | booth: %v| error: %v",
 			cmdPhase[OPB], m.BlockId, len(aggregatedSigs), currBooth, err)

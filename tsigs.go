@@ -195,8 +195,9 @@ func PenVerifyPartially(msg, sig []byte, pub *share.PubPoly) error {
 //	return penKeyGen.Verify(suite, PublicPoly, msg, sig)
 //}
 
-func PenRecovery(sigShares [][]byte, msg *[]byte, pub *share.PubPoly) ([]byte, error) {
-	sig, err := tbls.Recover(suite, pub, *msg, sigShares, Threshold, BoothSize)
+func PenRecovery(sigShares [][]byte, msg *[]byte, pub *share.PubPoly, boothSize int) ([]byte, error) {
+	threshold := getThreshold(boothSize)
+	sig, err := tbls.Recover(suite, pub, *msg, sigShares, threshold, boothSize)
 	return sig, err
 }
 

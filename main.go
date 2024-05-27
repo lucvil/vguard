@@ -54,8 +54,8 @@ func init() {
 	fmt.Printf("| Log level\t| %3d\t|\n", LogLevel)
 	fmt.Printf("| Init role\t| %3d\t|\n", Role)
 	fmt.Printf("| # of servers\t| %3d\t|\n", NumOfConn)
-	fmt.Printf("| Booth size\t| %3d\t|\n", BoothSize)
-	fmt.Printf("| Quorum size\t| %3d\t|\n", Quorum)
+	// fmt.Printf("| Booth size\t| %3d\t|\n", BoothSize)
+	// fmt.Printf("| Quorum size\t| %3d\t|\n", Quorum)
 	fmt.Printf("| Network delay\t| %3d\t|\n", Delay)
 	fmt.Printf("-------------------------------\n")
 	if PlainStorage {

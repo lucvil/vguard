@@ -81,13 +81,13 @@ var proposerLookup = struct {
 }{m: make(map[Phase]ServerId)}
 
 var (
-	BatchSize        int
-	MsgSize          int
-	MsgLoad          int64
-	NumOfValidators  int
-	NumOfConn        int
-	BoothSize        int
-	Threshold        int
+	BatchSize       int
+	MsgSize         int
+	MsgLoad         int64
+	NumOfValidators int
+	NumOfConn       int
+	// BoothSize        int
+	// Threshold        int
 	LogLevel         int
 	ServerID         int
 	Delay            int
@@ -121,7 +121,7 @@ func loadCmdParameters() {
 	flag.Int64Var(&MsgLoad, "ml", 1000, "# of msg to be sent < "+strconv.Itoa(MaxQueue))
 	flag.IntVar(&NumOfValidators, "w", 1, "number of worker threads")
 	flag.IntVar(&NumOfConn, "c", 6, "max # of connections")
-	flag.IntVar(&BoothSize, "boo", 4, "# of vehicles in a booth")
+	// flag.IntVar(&BoothSize, "boo", 4, "# of vehicles in a booth")
 	flag.IntVar(&ServerID, "id", 0, "serverID")
 	flag.IntVar(&Delay, "d", 0, "network delay")
 	flag.BoolVar(&PlainStorage, "s", false, "naive storage")
@@ -136,7 +136,7 @@ func loadCmdParameters() {
 	flag.IntVar(&LogLevel, "log", InfoLevel, "0: Panic | 1: Fatal | 2: Error | 3: Warn | 4: Info | 5: Debug")
 	flag.StringVar(&ConfPath, "cfp", "./config/cluster_localhost.conf", "config file path")
 
-	flag.IntVar(&BoothMode, "bm", 2, "booth mode: 0, 1, or 2")
+	flag.IntVar(&BoothMode, "bm", 0, "booth mode: 0, 1, or 2")
 	flag.IntVar(&BoothIDOfModeOCSB, "ocsb", 0, "BoothIDOfModeOCSB")
 	// flag.IntVar(&BoothIDOfModeOCDBWOP, "ocdbwop", 1, "BoothIDOfModeOCDBWOP")
 	// flag.IntVar(&BoothIDOfModeOCDBNOP, "ocdbnop", 5, "BoothIDOfModeOCDBNOP")
@@ -148,8 +148,8 @@ func loadCmdParameters() {
 
 	flag.Parse()
 
-	Quorum = (BoothSize/3)*2 + 1
-	Threshold = Quorum - 1
+	// Quorum = (BoothSize/3)*2 + 1
+	// Threshold = Quorum - 1
 }
 
 const (

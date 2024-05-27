@@ -11,14 +11,14 @@ func startConsensusPhaseA() {
 	for {
 		commitBoothID := getBoothID()
 
-		switch BoothMode {
-		case BoothModeOCSB:
+		// switch BoothMode {
+		// case BoothModeOCSB:
 
-		case BoothModeOCDBWOP:
-			commitBoothID = BoothIDOfModeOCDBWOP
-		case BoothModeOCDBNOP:
-			commitBoothID = BoothIDOfModeOCDBNOP
-		}
+		// case BoothModeOCDBWOP:
+		// 	commitBoothID = BoothIDOfModeOCDBWOP
+		// case BoothModeOCDBNOP:
+		// 	commitBoothID = BoothIDOfModeOCDBNOP
+		// }
 
 		commitBooth := booMgr.b[commitBoothID]
 		time.Sleep(time.Duration(ConsInterval) * time.Millisecond)
@@ -180,9 +180,12 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	residingBooth := vgTxData.boo[m.ConsInstID]
 	vgTxData.RUnlock()
 
-	if len(partialSig) == Threshold {
+	boothSize := len(residingBooth.Indices)
+	threshold := getThreshold(len(residingBooth.Indices))
+
+	if len(partialSig) == threshold {
 		log.Debugf("%s | Batch already committed| commitIndicator: %v | Threshold: %v | RangeId: %v | sid: %v",
-			cmdPhase[CPA], len(partialSig), Threshold, m.ConsInstID, sid)
+			cmdPhase[CPA], len(partialSig), threshold, m.ConsInstID, sid)
 		return
 	}
 
@@ -192,10 +195,10 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	vgTxMeta.sigs[m.ConsInstID] = partialSig
 	vgTxMeta.Unlock()
 
-	if len(partialSig) < Threshold {
+	if len(partialSig) < threshold {
 		log.Debugf("%s | insufficient votes | blockId: %d | indicator: %d | sid: %v", cmdPhase[CPA], m.ConsInstID, len(partialSig), sid)
 		return
-	} else if len(partialSig) > Threshold {
+	} else if len(partialSig) > threshold {
 		log.Debugf("%s | block %d already broadcastToBooth | indicator: %d | sid: %v", cmdPhase[CPA], m.ConsInstID, len(partialSig), sid)
 		return
 	}
@@ -203,8 +206,8 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	log.Infof("start consensus phase_b_pro of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 	log.Debugf(" ** votes sufficient | rangeId: %v | votes: %d | sid: %v", m.ConsInstID, len(partialSig), sid)
 
-	publicPolyPCA, _ := fetchKeysByBoothId(Threshold, ServerID, residingBooth.ID)
-	recoveredSig, err := PenRecovery(partialSig, &fetchedTotalHash, publicPolyPCA)
+	publicPolyPCA, _ := fetchKeysByBoothId(threshold, ServerID, residingBooth.ID)
+	recoveredSig, err := PenRecovery(partialSig, &fetchedTotalHash, publicPolyPCA, boothSize)
 	if err != nil {
 		log.Errorf("%s | PenRecovery failed | len(sigShares): %d | error: %v", cmdPhase[CPA], len(partialSig), err)
 		return
@@ -222,9 +225,9 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	nowTime = time.Now().UnixMilli()
 	log.Infof("end consensus of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 
-	if PerfMetres {
-		// storeVgTx(m.ConsInstID)
-	}
+	// if PerfMetres {
+	// 	// storeVgTx(m.ConsInstID)
+	// }
 
 	// Future work: garbage collection
 

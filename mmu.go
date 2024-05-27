@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"gonum.org/v1/gonum/stat/combin"
 )
@@ -49,6 +50,10 @@ var booMgr = struct {
 	index map[string]int
 }{index: make(map[string]int)}
 
+func getThreshold(boothSize int) int {
+	return (boothSize / 3) * 2
+}
+
 // generateHash generates a SHA-256 hash of the given slice of integers
 func generateBoothHash(indices []int) string {
 	hasher := sha256.New()
@@ -58,10 +63,11 @@ func generateBoothHash(indices []int) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func generateBoothKey(booth Booth) {
+func generateBoothKey(booth Booth, numOfConn int) {
 	cmdName := "./keyGen/generator"
-	threshold := (len(booth.Indices) / 3) * 2
-	cmdArgs := []string{"-t=" + strconv.Itoa(threshold), "-n=" + strconv.Itoa(len(booth.Indices)), "-b=" + strconv.Itoa(booth.ID)}
+	boothSize := len(booth.Indices)
+	threshold := (boothSize / 3) * 2
+	cmdArgs := []string{"-t=" + strconv.Itoa(threshold), "-n=" + strconv.Itoa(numOfConn), "-b=" + strconv.Itoa(booth.ID)}
 	cmd := exec.Command(cmdName, cmdArgs...)
 	// コマンドの標準出力を取得
 	_, err := cmd.Output()
@@ -94,14 +100,26 @@ func checkExactMatchInBooMgr(pattern []int) int {
 		nowBoothId = newBooth.ID
 
 		// Generate the key for the new booth
-		generateBoothKey(newBooth)
+		generateBoothKey(newBooth, NumOfConn)
 	}
 
 	return nowBoothId
 }
 
 func getBoothID() int {
-	pattern := []int{0, 1, 2, 3, 4, 5}
+
+	var pattern []int
+	nowTime := time.Now().UnixMilli()
+	if nowTime%3 == 0 {
+		pattern = []int{0, 1, 2, 3, 4}
+	} else if nowTime%3 == 1 {
+		pattern = []int{0, 1, 2, 3, 4, 5}
+	} else {
+		pattern = []int{0, 1, 2, 3, 4, 5, 6}
+	}
+
+	// pattern := []int{0, 1, 2, 3, 4}
+
 	nowBoothId := checkExactMatchInBooMgr(pattern)
 	return nowBoothId
 }

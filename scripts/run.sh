@@ -2,17 +2,16 @@
 # test in localhost
 ./vginstance -id=$1 -r=$2 \
 -b=100 \
--boo=$4 \
 -c=$3 \
 -cfp="./config/cluster_localhost.conf" \
 -ci=500 \
 -cw=20 \
--d=$6 \
+-d=$5 \
 -ed=1 \
 -gc=false \
 -lm=100 \
 -log=4 \
--m=$5 \
+-m=$4 \
 -ml=1000000 \
 -pm=true \
 -s=true \

@@ -114,6 +114,8 @@ func receivingOADialMessages(coordinatorId ServerId) {
 
 		err := postPhaseDialogInfo.dec.Decode(&m)
 
+		log.Infof("serverID: %d,start OPA blockID: %d", coordinatorId, m.BlockId)
+
 		if err == io.EOF {
 			log.Errorf("%v | coordinator closed connection | err: %v", time.Now(), err)
 			log.Warnf("Lost connection with the proposer (S%v); quitting program", postPhaseDialogInfo.SID)
