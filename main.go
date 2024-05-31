@@ -33,6 +33,8 @@ SOFTWARE.
 var log = logrus.New()
 var metre latencyMetre
 var vgInst sync.WaitGroup
+var simulationStartTime int64
+var vehicleTimeData map[string][]int
 
 func init() {
 	//初期パラメータを設定
@@ -43,6 +45,9 @@ func init() {
 	parseConf(NumOfConn)
 	// fetchKeys(Threshold, ServerID)
 	initConns(NumOfConn)
+
+	// fetchArteryData()
+
 	metre.init()
 
 	fmt.Printf("-------------------------------\n")
@@ -57,6 +62,7 @@ func init() {
 	// fmt.Printf("| Booth size\t| %3d\t|\n", BoothSize)
 	// fmt.Printf("| Quorum size\t| %3d\t|\n", Quorum)
 	fmt.Printf("| Network delay\t| %3d\t|\n", Delay)
+	fmt.Printf("| Vechile speed\t| %3d\t|\n", VehicleSpeed)
 	fmt.Printf("-------------------------------\n")
 	if PlainStorage {
 		fmt.Printf("|-- Log shows at ./logs/s%d --|\n", ServerID)

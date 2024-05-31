@@ -114,10 +114,11 @@ func receivingOADialMessages(coordinatorId ServerId) {
 
 		err := postPhaseDialogInfo.dec.Decode(&m)
 
-		log.Infof("serverID: %d,start OPA blockID: %d", coordinatorId, m.BlockId)
+		log.Infof("start ordering blockId: %v", m.BlockId)
 
 		if err == io.EOF {
-			log.Errorf("%v | coordinator closed connection | err: %v", time.Now(), err)
+			nowTime := time.Now().UnixMilli()
+			log.Errorf("%v | coordinator closed connection | err: %v, time=%d", rpyPhase[OPA], err, nowTime)
 			log.Warnf("Lost connection with the proposer (S%v); quitting program", postPhaseDialogInfo.SID)
 			vgInst.Done()
 			break
@@ -145,7 +146,8 @@ func receivingOBDialMessages(coordinatorId ServerId) {
 		err := orderPhaseDialogInfo.dec.Decode(&m)
 
 		if err == io.EOF {
-			log.Errorf("%s | coordinator closed connection | err: %v", rpyPhase[OPB], err)
+			nowTime := time.Now().UnixMilli()
+			log.Errorf("%s | coordinator closed connection | err: %v, time=%d", rpyPhase[OPB], err, nowTime)
 			break
 		}
 

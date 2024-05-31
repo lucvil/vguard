@@ -10,6 +10,8 @@ const NOP = 4 // Number of phases
 
 const MaxQueue = 10_000_000
 
+const ArterySimulationDelay = 100.0
+
 const (
 	OPA = iota
 	OPB
@@ -101,6 +103,9 @@ var (
 	ConsWaitingSec   int
 	ConsInterval     int
 	ConfPath         string
+	VehicleSpeed     int
+
+	// ArterySimulationDelay float64
 
 	// BoothMode includes options for changing the booth dynamicity in evaluation
 	BoothMode int
@@ -135,6 +140,8 @@ func loadCmdParameters() {
 	flag.IntVar(&ConsInterval, "ci", 500, "consensus instance interval (ms)")
 	flag.IntVar(&LogLevel, "log", InfoLevel, "0: Panic | 1: Fatal | 2: Error | 3: Warn | 4: Info | 5: Debug")
 	flag.StringVar(&ConfPath, "cfp", "./config/cluster_localhost.conf", "config file path")
+
+	flag.IntVar(&VehicleSpeed, "vs", 80, "vehicle speed (km/h)")
 
 	flag.IntVar(&BoothMode, "bm", 0, "booth mode: 0, 1, or 2")
 	flag.IntVar(&BoothIDOfModeOCSB, "ocsb", 0, "BoothIDOfModeOCSB")

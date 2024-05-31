@@ -3,8 +3,9 @@
 MESSAGE_SIZE=32
 NETWORK_DELAY=10
 
+
 # Loop through the specified range of values
-for i in {10..10..2}
+for i in {350..350..2}
 do
   # Run the script with the current value as an argument
   ./scripts/run_from_artery.sh $i $MESSAGE_SIZE $NETWORK_DELAY

@@ -3,9 +3,12 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"math"
+	"os"
 	"os/exec"
 	"sort"
 	"strconv"
@@ -49,6 +52,33 @@ var booMgr = struct {
 	b     []Booth
 	index map[string]int
 }{index: make(map[string]int)}
+
+func fetchArteryData() {
+	arteryFilePath := "../artery/scenarios/vguard-test/results/speed" + strconv.Itoa(VehicleSpeed) + "/300vehicle/extended_time_id.json"
+	// arteryFilePath := "./data.json"
+
+	// JSONファイルを読み込む
+	file, err := os.Open(arteryFilePath)
+	if err != nil {
+		fmt.Printf("Error opening file: %s\n", err)
+		return
+	}
+	defer file.Close()
+
+	// ファイルの内容を読み込む
+	byteValue, err := io.ReadAll(file)
+	if err != nil {
+		fmt.Printf("Error reading file: %s\n", err)
+		return
+	}
+
+	// JSONデコード
+	if err := json.Unmarshal(byteValue, &vehicleTimeData); err != nil {
+		fmt.Printf("Error unmarshalling JSON: %s\n", err)
+		return
+	}
+
+}
 
 func getThreshold(boothSize int) int {
 	return (boothSize / 3) * 2
@@ -106,19 +136,21 @@ func checkExactMatchInBooMgr(pattern []int) int {
 	return nowBoothId
 }
 
-func getBoothID() int {
+func RoundToDecimal(value float64, places int) float64 {
+	shift := math.Pow(10, float64(places))
+	return math.Round(value*shift) / shift
+}
 
+func getBoothID() int {
 	var pattern []int
 	nowTime := time.Now().UnixMilli()
-	if nowTime%3 == 0 {
-		pattern = []int{0, 1, 2, 3, 4}
-	} else if nowTime%3 == 1 {
-		pattern = []int{0, 1, 2, 3, 4, 5}
-	} else {
-		pattern = []int{0, 1, 2, 3, 4, 5, 6}
-	}
+	pastTime := float64(nowTime) - float64(simulationStartTime)
+	pastTime = pastTime/1000 + ArterySimulationDelay
+	pastTime = RoundToDecimal(pastTime, 3)
 
-	// pattern := []int{0, 1, 2, 3, 4}
+	key := fmt.Sprintf("%.2f", pastTime)
+	pattern = vehicleTimeData[key]
+	pattern = append([]int{0}, pattern...)
 
 	nowBoothId := checkExactMatchInBooMgr(pattern)
 	return nowBoothId
@@ -198,6 +230,12 @@ func broadcastToBooth(e interface{}, phase int, boothID int) {
 				log.Errorf("sent to server %v failed | err: %v", concierge.n[phase][i].SID, err)
 			}
 		}
+	}
+
+	nowTime := time.Now().UnixMilli()
+	switch e.(type) {
+	case ProposerOPAEntry:
+		log.Infof("broadcasted to booth %v , brock: %d| time: %v", boothID, e.(ProposerOPAEntry).BlockId, nowTime)
 	}
 }
 

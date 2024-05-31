@@ -82,13 +82,22 @@ booth_size = participant_size
 message_size = int(arguments[1])
 network_delay = int(arguments[2])
 
+try:
+    vehicle_speed = int(arguments[3])
+except IndexError:
+    print("Error: Not enough arguments provided.")
+    vehicle_speed = None  # またはデフォルト値を設定する
+
 log_file = "./logs/s0/n_" + str(participant_size) + "_b100_d" + str(network_delay) + ".log"
 ordering_event, consensus_event = extract_logs(log_file)
 
 # print(ordering_event)
 
 # make directory to store result csv
-result_csv_folder = "./results/booth_change/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/"
+if vehicle_speed is None:
+    result_csv_folder = "./results/booth_change/others/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/"
+else:
+    result_csv_folder = "./results/booth_change/vs"  + str(vehicle_speed) + "/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/"
 # result_csv_folder = "./results/boo21/"
 if not os.path.exists(result_csv_folder):
     os.makedirs(result_csv_folder)

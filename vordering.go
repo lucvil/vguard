@@ -153,6 +153,9 @@ func startOrderingPhaseA(i int) {
 
 		log.Debugf("new PostEntryBlock broadcastToBooth -> blk_id: %d | blk_hash: %s",
 			postEntry.BlockId, hex.EncodeToString(postEntry.Hash))
+
+		nowTime = time.Now().UnixMilli()
+		log.Infof("broadcast ordering of block %d, Timestamp: %d", newBlockId, nowTime)
 	}
 }
 
@@ -179,7 +182,7 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 
 	threshold := getThreshold(len(currBooth.Indices))
 
-	log.Infof("received OPA reply from %v for block %v, threshold: %d", sid, m.BlockId, threshold)
+	// log.Infof("received OPA reply from %v for block %v, threshold: %d", sid, m.BlockId, threshold)
 
 	if indicator == threshold {
 		blockOrderFrag.Unlock()

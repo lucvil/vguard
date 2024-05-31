@@ -14,6 +14,8 @@ func runAsProposer(proposerId ServerId) {
 	// NOP = 4 (Number of phases)
 	wg.Add(NOP)
 
+	fetchArteryData()
+
 	for i := 0; i < NOP; i++ {
 		//接続の受け入れ
 		go acceptConns(proposerId, &wg, i)
@@ -31,6 +33,9 @@ func runAsProposer(proposerId ServerId) {
 	txGenerator(MsgSize)
 
 	//NumOfValidators, "w", 1, "number of worker threads"
+
+	simulationStartTime = time.Now().UnixMilli()
+
 	for i := 0; i < NumOfValidators; i++ {
 		go startOrderingPhaseA(i)
 	}
