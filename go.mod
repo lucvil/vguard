@@ -3,9 +3,9 @@ module vguardbft
 go 1.17
 
 require (
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	go.dedis.ch/kyber/v3 v3.1.0
-	gonum.org/v1/gonum v0.12.0
+	gonum.org/v1/gonum v0.15.0
 )
 
 require (

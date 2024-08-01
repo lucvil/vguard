@@ -2,11 +2,11 @@
 
 MESSAGE_SIZE=32
 NETWORK_DELAY=10
-VEHICLE_SPEED=40
+VEHICLE_SPEED=70
 
 
 # Loop through the specified range of values
-for i in {350..350..2}
+for i in {310..310..2}
 do
   # Run the script with the current value as an argument
   ./scripts/member_change_run_from_artery.sh $i $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED
