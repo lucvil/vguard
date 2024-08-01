@@ -216,11 +216,6 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 		ParSig:     partialSig,
 	}
 
-	dialSendBack(replyCA, encoder, CPA)
-
-	nowTime = time.Now().UnixMilli()
-	log.Infof("end consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
-
 	vgTxMeta.Lock()
 	vgTxMeta.hash[m.ConsInstID] = m.TotalHash
 	vgTxMeta.Unlock()
@@ -235,6 +230,11 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 		valiConsJobStack.Unlock()
 		s <- 1
 	}
+
+	dialSendBack(replyCA, encoder, CPA)
+
+	nowTime = time.Now().UnixMilli()
+	log.Infof("end consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 
 }
 
