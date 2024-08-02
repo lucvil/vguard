@@ -141,6 +141,12 @@ func startConsensusPhaseA() {
 			TotalHash:      totalHash,
 		}
 
+		// store the hash and blockIDRange before sending to vaidators
+		vgTxMeta.Lock()
+		vgTxMeta.hash[consInstID] = totalHash
+		vgTxMeta.blockIDs[consInstID] = blockIDRange
+		vgTxMeta.Unlock()
+
 		nowTime = time.Now().UnixMilli()
 		log.Infof("end consensus phase_a_pro of consInstId: %d,Timestamp: %d, lenBlockRange: %d", consInstID, nowTime, len(blockIDRange))
 
@@ -153,10 +159,7 @@ func startConsensusPhaseA() {
 			broadcastToNewBooth(entryCA, CPA, commitBoothID, newMembers, newEntryCA)
 		}
 
-		vgTxMeta.Lock()
-		vgTxMeta.hash[consInstID] = totalHash
-		vgTxMeta.blockIDs[consInstID] = blockIDRange
-		vgTxMeta.Unlock()
+
 
 		consInstID++
 	}

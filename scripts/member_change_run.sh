@@ -5,14 +5,14 @@
 -c=$3 \
 -cfp="./config/cluster_localhost.conf" \
 -ci=500 \
--cw=20 \
+-cw=60 \
 -d=$5 \
 -ed=1 \
 -gc=false \
 -lm=100 \
 -log=4 \
 -m=$4 \
--ml=1000000 \
+-ml=500000 \
 -pm=true \
 -s=true \
 -w=1 \

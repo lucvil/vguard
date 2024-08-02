@@ -22,7 +22,7 @@ var valiOrdJobStack = struct {
 func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 	log.Debugf("%s | ProposerOPBEntry received (BlockID: %d) @ %v", rpyPhase[OPA], m.BlockId, time.Now().UTC().String())
 
-	log.Infof("serverID: %d,start validating OAEntry blockID: %d", ServerID, m.BlockId)
+	// log.Infof("serverID: %d,start validating OAEntry blockID: %d", ServerID, m.BlockId)
 	//受信したブロックIDが既に使用されているかどうかを確認します。
 	//既に使用されていれば、ロックを解除し、警告ログを出力して関数を終了します。
 	ordSnapshot.Lock()
@@ -82,7 +82,7 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 
 	log.Debugf("%s | msg: %v; ps: %v", rpyPhase[OPA], m.BlockId, hex.EncodeToString(sig))
 
-	log.Infof("serverID: %d,end validating OAEntry blockID: %d", ServerID, m.BlockId)
+	// log.Infof("serverID: %d,end validating OAEntry blockID: %d", ServerID, m.BlockId)
 
 	//返信を送信します(OPB)
 	dialSendBack(postReply, encoder, OPA)
@@ -152,7 +152,7 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 
 func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 	nowTime := time.Now().UnixMilli()
-	log.Infof("start consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
+	// log.Infof("start consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 
 	log.Debugf("%s | ProposerCPAEntry received (RangeId: %d) @ %v", rpyPhase[CPA], m.ConsInstID, time.Now().UTC().String())
 
@@ -225,11 +225,6 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 		ParSig:     partialSig,
 	}
 
-	dialSendBack(replyCA, encoder, CPA)
-
-	nowTime = time.Now().UnixMilli()
-	log.Infof("end consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
-
 	vgTxMeta.Lock()
 	vgTxMeta.hash[m.ConsInstID] = m.TotalHash
 	vgTxMeta.Unlock()
@@ -244,6 +239,11 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 		valiConsJobStack.Unlock()
 		s <- 1
 	}
+
+	dialSendBack(replyCA, encoder, CPA)
+
+	nowTime = time.Now().UnixMilli()
+	// log.Infof("end consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 
 }
 

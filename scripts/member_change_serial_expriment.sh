@@ -2,7 +2,7 @@
 
 MESSAGE_SIZE=32
 NETWORK_DELAY=10
-VEHICLE_SPEED=70
+VEHICLE_SPEED=60
 
 
 # Loop through the specified range of values
