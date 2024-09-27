@@ -42,8 +42,11 @@ func init() {
 	//ログファイルを設定
 	setLogger()
 	//config/cluster_localhost.confからサーバー情報をさがす
+	//サーバー情報を取り出し変数としてほぞん（loadconf.go）
+	//ServerList, serverIdLookup変数を更新
 	parseConf(NumOfConn)
 	// fetchKeys(Threshold, ServerID)
+	//concierge, dialogMgr変数を更新
 	initConns(NumOfConn)
 
 	// fetchArteryData()
