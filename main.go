@@ -47,6 +47,7 @@ func init() {
 	parseConf(NumOfConn)
 	// fetchKeys(Threshold, ServerID)
 	//concierge, dialogMgr変数を更新
+	// 要変更
 	initConns(NumOfConn)
 
 	// fetchArteryData()
@@ -66,6 +67,7 @@ func init() {
 	// fmt.Printf("| Quorum size\t| %3d\t|\n", Quorum)
 	fmt.Printf("| Network delay\t| %3d\t|\n", Delay)
 	fmt.Printf("| Vechile speed\t| %3d\t|\n", VehicleSpeed)
+	fmt.Printf("| Proposer List\t| %v\t|\n", ProposerList)
 	fmt.Printf("-------------------------------\n")
 	if PlainStorage {
 		fmt.Printf("|-- Log shows at ./logs/s%d --|\n", ServerID)

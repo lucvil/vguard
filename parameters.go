@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -79,8 +81,9 @@ var serverIdLookup = struct {
 
 var proposerLookup = struct {
 	sync.RWMutex
-	m map[Phase]ServerId
-}{m: make(map[Phase]ServerId)}
+	// m map[Phase]ServerId
+	m map[Phase][]ServerId
+}{m: make(map[Phase][]ServerId)}
 
 var (
 	BatchSize       int
@@ -104,6 +107,9 @@ var (
 	ConsInterval     int
 	ConfPath         string
 	VehicleSpeed     int
+
+	// for multiple proposer
+	ProposerList []ServerId
 
 	// ArterySimulationDelay float64
 
@@ -153,7 +159,26 @@ func loadCmdParameters() {
 	//flag.IntVar(&SlowModeCycleNum, "sm", 3, "# of cycles going in slow mode")
 	//flag.IntVar(&SleepTimeInSlowMode, "smt", 1, "slow mode cycle sleep time (second)")
 
+	// for multiple proposer
+	// Add the proposer list flag
+	var proposerIds string
+	flag.StringVar(&proposerIds, "pl", "", "comma-separated list of proposer IDs")
+
 	flag.Parse()
+
+	// Split the proposerIds into an array and convert to int
+	if proposerIds != "" {
+		proposerStrIds := strings.Split(proposerIds, ",")
+		for _, strId := range proposerStrIds {
+			id, err := strconv.Atoi(strId)
+			if err != nil {
+				log.Fatalf("Invalid proposer ID: %s", strId)
+			}
+			ProposerList = append(ProposerList, ServerId(id))
+		}
+	} else {
+		fmt.Println("No proposer IDs provided")
+	}
 
 	// Quorum = (BoothSize/3)*2 + 1
 	// Threshold = Quorum - 1

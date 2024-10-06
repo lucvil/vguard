@@ -151,7 +151,7 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 }
 
 func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
-	nowTime := time.Now().UnixMilli()
+	// nowTime := time.Now().UnixMilli()
 	// log.Infof("start consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 
 	log.Debugf("%s | ProposerCPAEntry received (RangeId: %d) @ %v", rpyPhase[CPA], m.ConsInstID, time.Now().UTC().String())
@@ -242,7 +242,7 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 
 	dialSendBack(replyCA, encoder, CPA)
 
-	nowTime = time.Now().UnixMilli()
+	// nowTime = time.Now().UnixMilli()
 	// log.Infof("end consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 
 }

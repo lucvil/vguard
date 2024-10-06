@@ -13,17 +13,19 @@ func runAsValidator() {
 	defer proposerLookup.RUnlock()
 	proposerLookup.RLock()
 
-	registerDialConn(proposerLookup.m[OPA], OPA, ListenerPortOPA)
-	registerDialConn(proposerLookup.m[OPB], OPB, ListenerPortOPB)
-	registerDialConn(proposerLookup.m[CPA], CPA, ListenerPortOCA)
-	registerDialConn(proposerLookup.m[CPB], CPB, ListenerPortOCB)
+	for _, coordinatorId := range proposerLookup.m[OPA] {
+		registerDialConn(coordinatorId, OPA, ListenerPortOPA)
+		registerDialConn(coordinatorId, OPB, ListenerPortOPB)
+		registerDialConn(coordinatorId, CPA, ListenerPortOCA)
+		registerDialConn(coordinatorId, CPB, ListenerPortOCB)
+	}
 
 	log.Debugf("... registerDialConn completed ...")
 
-	go receivingOADialMessages(proposerLookup.m[OPA])
-	go receivingOBDialMessages(proposerLookup.m[OPB])
-	go receivingCADialMessages(proposerLookup.m[CPA])
-	go receivingCBDialMessages(proposerLookup.m[CPB])
+	go receivingOADialMessages(proposerLookup.m[OPA][0])
+	go receivingOBDialMessages(proposerLookup.m[OPB][0])
+	go receivingCADialMessages(proposerLookup.m[CPA][0])
+	go receivingCBDialMessages(proposerLookup.m[CPB][0])
 }
 
 func registerDialConn(coordinatorId ServerId, phaseNumber Phase, portNumber int) {
@@ -31,7 +33,7 @@ func registerDialConn(coordinatorId ServerId, phaseNumber Phase, portNumber int)
 	coordinatorListenerPort := ServerList[coordinatorId].Ports[portNumber]
 	coordinatorAddress := coordinatorIp + ":" + coordinatorListenerPort
 
-	conn, err := establishDialConn(coordinatorAddress, int(phaseNumber))
+	conn, err := establishDialConn(coordinatorId, coordinatorAddress, int(phaseNumber))
 	if err != nil {
 		log.Errorf("dialog to coordinator %v failed | error: %v", phaseNumber, err)
 		return
@@ -53,12 +55,24 @@ func registerDialConn(coordinatorId ServerId, phaseNumber Phase, portNumber int)
 		dialogMgr.conns[phaseNumber][coordinatorId].conn.RemoteAddr().String())
 }
 
-func establishDialConn(coordListenerAddr string, phase int) (*net.TCPConn, error) {
+func establishDialConn(coordinatorId ServerId, coordListenerAddr string, phase int) (*net.TCPConn, error) {
 	var e error
 
 	coordTCPListenerAddr, err := net.ResolveTCPAddr("tcp4", coordListenerAddr)
 	if err != nil {
 		panic(err)
+	}
+
+	coordinatorIndex := -1
+	for i, v := range ProposerList {
+		if v == coordinatorId {
+			coordinatorIndex = i
+			break
+		}
+	}
+
+	if coordinatorIndex == -1 {
+		panic(errors.New("coordinator not found in ProposerList"))
 	}
 
 	ServerList[ServerID].RLock()
@@ -68,13 +82,13 @@ func establishDialConn(coordListenerAddr string, phase int) (*net.TCPConn, error
 
 	switch phase {
 	case OPA:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPA]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPA+coordinatorIndex*8]
 	case OPB:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPB]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPB+coordinatorIndex*8]
 	case CPA:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPA]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPA+coordinatorIndex*8]
 	case CPB:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPB]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPB+coordinatorIndex*8]
 	default:
 		panic(errors.New("wrong phase name"))
 	}

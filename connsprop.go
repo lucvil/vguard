@@ -33,7 +33,6 @@ func runAsProposer(proposerId ServerId) {
 	txGenerator(MsgSize)
 
 	//NumOfValidators, "w", 1, "number of worker threads"
-
 	simulationStartTime = time.Now().UnixMilli()
 
 	for i := 0; i < NumOfValidators; i++ {
