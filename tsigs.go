@@ -85,7 +85,8 @@ func fetchKeysByBoothId(t, id, boothId int) (*share.PubPoly, *share.PriShare) {
 // }
 
 func fetchPubPoly(t, boothId int) (*share.PubPoly, error) {
-	readPubPoly, err := os.Open("./keys/" + strconv.Itoa(boothId) + "/vguard_pub.dupe")
+	blockchainId := 0
+	readPubPoly, err := os.Open("./keys/" + strconv.Itoa(blockchainId) + "/" + strconv.Itoa(boothId) + "/vguard_pub.dupe")
 
 	if err != nil {
 		return nil, err
@@ -136,8 +137,9 @@ func fetchPriShare(serverId int, t int, boothId int) (*share.PriShare, error) {
 	priPoly := share.NewPriPoly(suite.G2(), t, secret, rand)
 
 	priShare := priPoly.Shares(1)[0]
+	blockchainId := 0
 
-	readPriShare, err := os.Open(fmt.Sprintf("./keys/%d/pri_%d.dupe", boothId, serverId))
+	readPriShare, err := os.Open(fmt.Sprintf("./keys/%d/%d/pri_%d.dupe", blockchainId, boothId, serverId))
 	if err != nil {
 		return nil, err
 	}

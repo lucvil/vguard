@@ -1,8 +1,8 @@
 #!/bin/bash
 # test in localhost
-./vginstance -id=2 -r=0 \
+./vginstance -id=$1 -r=$2 \
 -b=100 \
--c=6 \
+-c=$3 \
 -cfp="./config/cluster_localhost.conf" \
 -ci=500 \
 -cw=60 \

@@ -22,6 +22,8 @@ var valiOrdJobStack = struct {
 func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 	log.Debugf("%s | ProposerOPBEntry received (BlockID: %d) @ %v", rpyPhase[OPA], m.BlockId, time.Now().UTC().String())
 
+	log.Infof("start validate")
+
 	// log.Infof("serverID: %d,start validating OAEntry blockID: %d", ServerID, m.BlockId)
 	//受信したブロックIDが既に使用されているかどうかを確認します。
 	//既に使用されていれば、ロックを解除し、警告ログを出力して関数を終了します。
@@ -83,6 +85,8 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 	log.Debugf("%s | msg: %v; ps: %v", rpyPhase[OPA], m.BlockId, hex.EncodeToString(sig))
 
 	// log.Infof("serverID: %d,end validating OAEntry blockID: %d", ServerID, m.BlockId)
+
+	log.Infof("finish validate")
 
 	//返信を送信します(OPB)
 	dialSendBack(postReply, encoder, OPA)
@@ -148,6 +152,8 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 	cmtSnapshot.Unlock()
 
 	log.Debugf("block %d ordered", m.BlockId)
+
+	log.Infof("end order of BlockId: %d", m.BlockId)
 }
 
 func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {

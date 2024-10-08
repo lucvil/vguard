@@ -34,7 +34,7 @@ var log = logrus.New()
 var metre latencyMetre
 var vgInst sync.WaitGroup
 var simulationStartTime int64
-var vehicleTimeData map[string][]int
+var vehicleTimeData map[string]map[ServerId][]int
 
 func init() {
 	//初期パラメータを設定

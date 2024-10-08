@@ -162,6 +162,8 @@ func startOrderingPhaseA(i int) {
 // input->ValidatorOPAReply
 func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 
+	log.Infof("start asyncHandleOBReply")
+
 	ordSnapshot.RLock()
 	blockOrderFrag, ok := ordSnapshot.m[m.BlockId]
 	ordSnapshot.RUnlock()
@@ -209,6 +211,8 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 		return
 	}
 
+	// log.Infof("collect enough OBReply")
+
 	///複数の署名断片から完全なデジタル署名を復元するための関数s
 	publicPolyPOB, _ := fetchKeysByBoothId(threshold, ServerID, currBooth.ID)
 	thresholdSig, err := PenRecovery(aggregatedSigs, &blockOrderFrag.hash, publicPolyPOB, len(currBooth.Indices))
@@ -217,6 +221,8 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 			cmdPhase[OPB], m.BlockId, len(aggregatedSigs), currBooth, err)
 		return
 	}
+
+	// log.Infof("fetch key and make thresholdSig")
 
 	orderEntry := ProposerOPBEntry{
 		Booth:   currBooth,
@@ -248,6 +254,8 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 	cmtSnapshot.Lock()
 	cmtSnapshot.m[m.BlockId].tSig = thresholdSig
 	cmtSnapshot.Unlock()
+
+	// log.Infof("finish OBReply")
 
 	broadcastToBooth(orderEntry, OPB, currBooth.ID)
 

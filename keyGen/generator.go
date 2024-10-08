@@ -51,14 +51,16 @@ func main() {
 	})
 
 	var (
-		t       int //threshold
-		n       int //number of participants
-		boothId int //booth ID
+		t            int //threshold
+		n            int //number of participants
+		boothId      int //booth ID
+		blockchainId int //blockchian ID
 	)
 
 	flag.IntVar(&t, "t", 2, "Threshold")
 	flag.IntVar(&n, "n", 6, "# of participants")
 	flag.IntVar(&boothId, "b", 0, "Booth ID")
+	flag.IntVar(&blockchainId, "p", -1, "Blockchain ID")
 	flag.Parse()
 
 	log.Infof("KeyGen initialized, with t=%v and n=%v and boothId=%d", t, n, boothId)
@@ -69,28 +71,36 @@ func main() {
 	secret := suite.G1().Scalar().Pick(rand)
 	priPoly := share.NewPriPoly(suite.G2(), t, secret, rand)
 
-	if err := os.RemoveAll(fmt.Sprintf("./keys/" + strconv.Itoa(boothId) + "/")); err != nil {
+	var keysFolder string
+
+	if blockchainId < 0 {
+		keysFolder = "./keys/" + strconv.Itoa(boothId)
+	} else {
+		keysFolder = "./keys/" + strconv.Itoa(blockchainId) + "/" + strconv.Itoa(boothId)
+	}
+
+	if err := os.RemoveAll(keysFolder); err != nil {
 		panic(err)
 	}
 
-	if err := os.MkdirAll(fmt.Sprintf("./keys/"+strconv.Itoa(boothId)+"/"), os.ModePerm); err != nil {
+	if err := os.MkdirAll(keysFolder, os.ModePerm); err != nil {
 		panic(err)
 	}
 
-	err := createPubPoly(priPoly, boothId)
+	err := createPubPoly(priPoly, boothId, keysFolder)
 	if err != nil {
 		panic(err)
 	}
-	log.Infof("New PubPoly created at ./keys/%d/vguard_pub.dupe", boothId)
+	log.Infof("New PubPoly created at %s/vguard_pub.dupe", keysFolder)
 
-	_, err = createPrivateShare(priPoly, n, boothId)
+	_, err = createPrivateShare(priPoly, n, boothId, keysFolder)
 	if err != nil {
 		panic(err)
 	}
-	log.Infof("New %v PriShares created in ./keys/%d/", n, boothId)
+	log.Infof("New %v PriShares created in %s/", n, keysFolder)
 }
 
-func createPubPoly(priPoly *share.PriPoly, boothId int) error {
+func createPubPoly(priPoly *share.PriPoly, boothId int, keysFolder string) error {
 	commits := make([]kyber.Point, priPoly.Threshold())
 	var commitBytes [][]byte
 
@@ -102,7 +112,7 @@ func createPubPoly(priPoly *share.PriPoly, boothId int) error {
 		commitBytes = append(commitBytes, binaryScalar)
 	}
 
-	pubPolyFile, err := os.OpenFile("./keys/"+strconv.Itoa(boothId)+"/vguard_pub.dupe", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	pubPolyFile, err := os.OpenFile(keysFolder+"/vguard_pub.dupe", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 	if err != nil {
 		return err
@@ -128,11 +138,11 @@ func createPubPoly(priPoly *share.PriPoly, boothId int) error {
 	return nil
 }
 
-func createPrivateShare(priPoly *share.PriPoly, n int, boothId int) ([]*share.PriShare, error) {
+func createPrivateShare(priPoly *share.PriPoly, n int, boothId int, keysFolder string) ([]*share.PriShare, error) {
 	priShares := priPoly.Shares(n)
 
 	for _, priShare := range priShares {
-		priPolyShareFile, err := os.OpenFile(fmt.Sprintf("./keys/%d/pri_%d.dupe", boothId, priShare.I), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		priPolyShareFile, err := os.OpenFile(fmt.Sprintf("%s/pri_%d.dupe", keysFolder, priShare.I), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return nil, err
 		}

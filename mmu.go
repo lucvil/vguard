@@ -54,8 +54,8 @@ var booMgr = struct {
 }{index: make(map[string]int)}
 
 func fetchArteryData() {
-	arteryFilePath := "../artery/scenarios/vguard-test/results/speed" + strconv.Itoa(VehicleSpeed) + "/300vehicle/extended_time_id.json"
-	// arteryFilePath := "./data.json"
+	// arteryFilePath := "../artery/scenarios/vguard-test/results/speed" + strconv.Itoa(VehicleSpeed) + "/300vehicle/extended_time_id.json"
+	arteryFilePath := "./data.json"
 
 	// JSONファイルを読み込む
 	file, err := os.Open(arteryFilePath)
@@ -93,11 +93,12 @@ func generateBoothHash(indices []int) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func generateBoothKey(booth Booth, numOfConn int) {
+func generateBoothKey(booth Booth, numOfConn int, blockchainId int) {
 	cmdName := "./keyGen/generator"
 	boothSize := len(booth.Indices)
 	threshold := (boothSize / 3) * 2
-	cmdArgs := []string{"-t=" + strconv.Itoa(threshold), "-n=" + strconv.Itoa(numOfConn), "-b=" + strconv.Itoa(booth.ID)}
+	fmt.Printf("make this booth id key: %d, %v\n", booth.ID, booth.Indices)
+	cmdArgs := []string{"-t=" + strconv.Itoa(threshold), "-n=" + strconv.Itoa(numOfConn), "-b=" + strconv.Itoa(booth.ID), "-p=" + strconv.Itoa(blockchainId)}
 	cmd := exec.Command(cmdName, cmdArgs...)
 	// コマンドの標準出力を取得
 	_, err := cmd.Output()
@@ -130,7 +131,8 @@ func checkExactMatchInBooMgr(pattern []int) int {
 		nowBoothId = newBooth.ID
 
 		// Generate the key for the new booth
-		generateBoothKey(newBooth, NumOfConn)
+		var blockchainId = ServerID
+		generateBoothKey(newBooth, NumOfConn, blockchainId)
 	}
 
 	return nowBoothId
@@ -149,8 +151,11 @@ func getBoothID() int {
 	pastTime = RoundToDecimal(pastTime, 3)
 
 	key := fmt.Sprintf("%.2f", pastTime)
-	pattern = vehicleTimeData[key]
-	pattern = append([]int{0}, pattern...)
+	pattern = vehicleTimeData[key][ServerId(ServerID)]
+	//logにpatternとpastTimeを記述
+	// log.Infof("pattern:%v, pastTime: %f", pattern, key)
+
+	pattern = append([]int{ServerID}, pattern...)
 
 	nowBoothId := checkExactMatchInBooMgr(pattern)
 	return nowBoothId
