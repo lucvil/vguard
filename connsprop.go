@@ -25,6 +25,9 @@ func runAsProposer(proposerId ServerId) {
 
 	for i := 0; i < NOP; i++ {
 		//validator接続の受け入れ
+		blockchainInfo.Lock()
+		blockchainInfo.m[ServerID][Phase(i)] = ServerId(ServerID)
+		blockchainInfo.Unlock()
 		go acceptValidatorConns(proposerId, &wg, i)
 	}
 

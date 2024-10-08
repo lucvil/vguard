@@ -15,8 +15,8 @@ var valiConsJobStack = struct {
 
 var valiOrdJobStack = struct {
 	sync.RWMutex
-	s map[int64]chan int // <OrdInstID, chan 1>
-}{s: make(map[int64]chan int)}
+	s map[int]map[int64]chan int // <OrdInstID, chan 1>
+}{s: make(map[int]map[int64]chan int)}
 
 // return signature
 func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
@@ -28,7 +28,7 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 	//受信したブロックIDが既に使用されているかどうかを確認します。
 	//既に使用されていれば、ロックを解除し、警告ログを出力して関数を終了します。
 	ordSnapshot.Lock()
-	if _, ok := ordSnapshot.m[m.BlockId]; ok {
+	if _, ok := ordSnapshot.m[m.BlockchainId][m.BlockId]; ok {
 		ordSnapshot.Unlock()
 		log.Warnf("%s | blockID %v already used", rpyPhase[OPA], m.BlockId)
 		return
@@ -41,11 +41,11 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 		booth:   m.Booth,
 	}
 
-	ordSnapshot.m[m.BlockId] = &snapshot
+	ordSnapshot.m[m.BlockchainId][m.BlockId] = &snapshot
 	ordSnapshot.Unlock()
 
 	cmtSnapshot.Lock()
-	cmtSnapshot.m[m.BlockId] = &blockSnapshot{
+	cmtSnapshot.m[m.BlockchainId][m.BlockId] = &blockSnapshot{
 		hash:    m.Hash,
 		entries: m.Entries,
 		tSig:    nil,
@@ -54,10 +54,10 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 
 	//validation??
 	valiOrdJobStack.Lock()
-	if s, ok := valiOrdJobStack.s[m.BlockId]; !ok {
+	if s, ok := valiOrdJobStack.s[m.BlockchainId][m.BlockId]; !ok {
 		//容量1の整数型バッファ付きチャンネルを作成する式
 		s := make(chan int, 1)
-		valiOrdJobStack.s[m.BlockId] = s
+		valiOrdJobStack.s[m.BlockchainId][m.BlockId] = s
 		valiOrdJobStack.Unlock()
 		//valiOrdJobStack.s[m.BlockId]には、チャンネルが格納されているので、そのチャンネルに1を送信する
 		s <- 1
@@ -68,9 +68,11 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 
 	cmtSnapshot.Unlock()
 
+	//ここまで
+
 	//署名を作成します
 	threshold := getThreshold(len(m.Booth.Indices))
-	_, privateShareVOA := fetchKeysByBoothId(threshold, ServerID, m.Booth.ID)
+	_, privateShareVOA := fetchKeysByBoothId(threshold, ServerID, m.Booth.ID, m.BlockchainId)
 	sig, err := PenSign(m.Hash, privateShareVOA)
 	if err != nil {
 		log.Errorf("%s | PenSign failed, err: %v", rpyPhase[OPA], err)
@@ -78,8 +80,9 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 	}
 
 	postReply := ValidatorOPAReply{
-		BlockId: m.BlockId,
-		ParSig:  sig,
+		BlockchainId: m.BlockchainId,
+		BlockId:      m.BlockId,
+		ParSig:       sig,
 	}
 
 	log.Debugf("%s | msg: %v; ps: %v", rpyPhase[OPA], m.BlockId, hex.EncodeToString(sig))
@@ -93,6 +96,7 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 }
 
 func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
+
 	if encoder != nil {
 		log.Debugf("%s | ProposerOPBEntry received (BlockID: %d) @ %v", rpyPhase[OPB], m.BlockId, time.Now().UTC().String())
 	} else {
@@ -101,7 +105,7 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 
 	//ブロックのハッシュと組み合わせ署名を検証します。
 	threshold := getThreshold(len(m.Booth.Indices))
-	publicPolyVOB, _ := fetchKeysByBoothId(threshold, ServerID, m.Booth.ID)
+	publicPolyVOB, _ := fetchKeysByBoothId(threshold, ServerID, m.Booth.ID, m.BlockchainId)
 	err := PenVerify(m.Hash, m.CombSig, publicPolyVOB)
 	if err != nil {
 		log.Errorf("%v: PenVerify failed | err: %v | BlockID: %v | m.Hash: %v| CombSig: %v",
@@ -110,7 +114,7 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 	}
 
 	ordSnapshot.RLock()
-	_, ok := ordSnapshot.m[m.BlockId]
+	_, ok := ordSnapshot.m[m.BlockchainId][m.BlockId]
 	ordSnapshot.RUnlock()
 
 	if !ok {
@@ -121,7 +125,7 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 
 		if encoder == nil {
 			cmtSnapshot.Lock()
-			cmtSnapshot.m[m.BlockId] = &blockSnapshot{
+			cmtSnapshot.m[m.BlockchainId][m.BlockId] = &blockSnapshot{
 				hash:    m.Hash,
 				entries: m.Entries,
 				tSig:    m.CombSig,
@@ -135,12 +139,12 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 	}
 
 	cmtSnapshot.Lock()
-	if _, ok := cmtSnapshot.m[m.BlockId]; !ok {
+	if _, ok := cmtSnapshot.m[m.BlockchainId][m.BlockId]; !ok {
 
 		valiOrdJobStack.Lock()
-		if s, ok := valiOrdJobStack.s[m.BlockId]; !ok {
+		if s, ok := valiOrdJobStack.s[m.BlockchainId][m.BlockId]; !ok {
 			s := make(chan int, 1)
-			valiOrdJobStack.s[m.BlockId] = s
+			valiOrdJobStack.s[m.BlockchainId][m.BlockId] = s
 			valiOrdJobStack.Unlock()
 			<-s
 		} else {
@@ -148,7 +152,7 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 			<-s
 		}
 	}
-	cmtSnapshot.m[m.BlockId].tSig = m.CombSig
+	cmtSnapshot.m[m.BlockchainId][m.BlockId].tSig = m.CombSig
 	cmtSnapshot.Unlock()
 
 	log.Debugf("block %d ordered", m.BlockId)

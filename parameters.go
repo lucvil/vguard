@@ -85,6 +85,11 @@ var proposerLookup = struct {
 	m map[Phase][]ServerId
 }{m: make(map[Phase][]ServerId)}
 
+var blockchainInfo = struct {
+	sync.RWMutex
+	m map[int]map[Phase]ServerId
+}{m: make(map[int]map[Phase]ServerId)}
+
 var (
 	BatchSize       int
 	MsgSize         int

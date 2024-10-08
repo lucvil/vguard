@@ -16,16 +16,16 @@ import (
 // ordSnapshot stores consensus information for each block in the ordering phase
 // the map stores <blockID, blockSnapshot>
 var ordSnapshot = struct {
-	m map[int64]*blockSnapshot
+	m map[int]map[int64]*blockSnapshot
 	sync.RWMutex
-}{m: make(map[int64]*blockSnapshot)}
+}{m: make(map[int]map[int64]*blockSnapshot)}
 
 // cmtSnapshot stores consensus information for each block in the consensus phase
 // the map stores <blockID, blockSnapshot>
 var cmtSnapshot = struct {
-	m map[int64]*blockSnapshot
+	m map[int]map[int64]*blockSnapshot
 	sync.RWMutex
-}{m: make(map[int64]*blockSnapshot)}
+}{m: make(map[int]map[int64]*blockSnapshot)}
 
 type blockSnapshot struct {
 	sync.RWMutex

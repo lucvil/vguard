@@ -50,6 +50,10 @@ func registerDialConn(coordinatorId ServerId, phaseNumber Phase, portNumber int)
 	}
 	dialogMgr.Unlock()
 
+	blockchainInfo.Lock()
+	blockchainInfo.m[int(coordinatorId)][phaseNumber] = coordinatorId
+	blockchainInfo.Unlock()
+
 	log.Infof("dial conn of Phase %d has registered | dialogMgr.conns[phaseNumber: %d][coordinatorId: %d]: localconn: %s, remoteconn: %s",
 		phaseNumber, phaseNumber, coordinatorId, dialogMgr.conns[phaseNumber][coordinatorId].conn.LocalAddr().String(),
 		dialogMgr.conns[phaseNumber][coordinatorId].conn.RemoteAddr().String())

@@ -10,6 +10,7 @@ func startConsensusPhaseA() {
 
 	for {
 		commitBoothID := getBoothID()
+		var blockchainId = ServerID
 
 		// switch BoothMode {
 		// case BoothModeOCSB:
@@ -62,7 +63,7 @@ func startConsensusPhaseA() {
 			var blockEntries []Entry
 
 			cmtSnapshot.Lock()
-			blockCmtFrag, ok := cmtSnapshot.m[blockID]
+			blockCmtFrag, ok := cmtSnapshot.m[blockchainId][blockID]
 			cmtSnapshot.Unlock()
 
 			if !ok {
@@ -93,11 +94,12 @@ func startConsensusPhaseA() {
 
 			if newMemberFlag {
 				resentOPBEntries = append(resentOPBEntries, ProposerOPBEntry{
-					Booth:   ordBoo,
-					BlockId: blockID,
-					CombSig: blockCmtFrag.tSig,
-					Entries: blockCmtFrag.entries,
-					Hash:    blockCmtFrag.hash,
+					BlockchainId: blockchainId,
+					Booth:        ordBoo,
+					BlockId:      blockID,
+					CombSig:      blockCmtFrag.tSig,
+					Entries:      blockCmtFrag.entries,
+					Hash:         blockCmtFrag.hash,
 				})
 				if blockCmtFrag.tSig == nil {
 					log.Errorf("CombSig is nil ! len of Entries: %v", len(blockCmtFrag.entries))
@@ -134,6 +136,7 @@ func startConsensusPhaseA() {
 
 		entryCA := ProposerCPAEntry{
 			PrevOPBEntries: nil,
+			BlockchainId:   blockchainId,
 			Booth:          commitBooth,
 			BIDs:           blockIDRange,
 			ConsInstID:     consInstID,
@@ -158,8 +161,6 @@ func startConsensusPhaseA() {
 			log.Debugf("%s | sending newEntry CA to %v | len(resentOPBEntries): %v", cmdPhase[CPA], newMembers, len(resentOPBEntries))
 			broadcastToNewBooth(entryCA, CPA, commitBoothID, newMembers, newEntryCA)
 		}
-
-
 
 		consInstID++
 	}

@@ -84,6 +84,9 @@ func startOrderingPhaseA(i int) {
 
 		// shuffle.counter >= BatchSize -> do below code
 
+		//blockchainIdは今の所ServerIDと一緒にする、proposerの変更はいまのところ考えない
+		var blockchainId = ServerID
+
 		serializedEntries, err := serialization(shuffle.entries)
 		if err != nil {
 			log.Errorf("serialization failed, err: %v", err)
@@ -96,10 +99,11 @@ func startOrderingPhaseA(i int) {
 
 		// create date for order phase a
 		postEntry := ProposerOPAEntry{
-			Booth:   booMgr.b[orderingBoothID],
-			BlockId: newBlockId,
-			Entries: shuffle.entries,
-			Hash:    getDigest(serializedEntries),
+			Booth:        booMgr.b[orderingBoothID],
+			BlockchainId: blockchainId,
+			BlockId:      newBlockId,
+			Entries:      shuffle.entries,
+			Hash:         getDigest(serializedEntries),
 		}
 
 		//start time
@@ -131,11 +135,11 @@ func startOrderingPhaseA(i int) {
 		}
 
 		ordSnapshot.Lock()
-		ordSnapshot.m[postEntry.BlockId] = &blockOrderFrag
+		ordSnapshot.m[postEntry.BlockchainId][postEntry.BlockId] = &blockOrderFrag
 		ordSnapshot.Unlock()
 
 		cmtSnapshot.Lock()
-		cmtSnapshot.m[postEntry.BlockId] = &blockCommitFrag
+		cmtSnapshot.m[postEntry.BlockchainId][postEntry.BlockId] = &blockCommitFrag
 		cmtSnapshot.Unlock()
 
 		//clear shuffle variables
@@ -165,7 +169,7 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 	log.Infof("start asyncHandleOBReply")
 
 	ordSnapshot.RLock()
-	blockOrderFrag, ok := ordSnapshot.m[m.BlockId]
+	blockOrderFrag, ok := ordSnapshot.m[m.BlockchainId][m.BlockId]
 	ordSnapshot.RUnlock()
 
 	if !ok {
@@ -214,7 +218,7 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 	// log.Infof("collect enough OBReply")
 
 	///複数の署名断片から完全なデジタル署名を復元するための関数s
-	publicPolyPOB, _ := fetchKeysByBoothId(threshold, ServerID, currBooth.ID)
+	publicPolyPOB, _ := fetchKeysByBoothId(threshold, ServerID, currBooth.ID, m.BlockchainId)
 	thresholdSig, err := PenRecovery(aggregatedSigs, &blockOrderFrag.hash, publicPolyPOB, len(currBooth.Indices))
 	if err != nil {
 		log.Errorf("%s | blockId: %v | PenRecovery failed | len(sigShares): %v | booth: %v| error: %v",
@@ -225,10 +229,11 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 	// log.Infof("fetch key and make thresholdSig")
 
 	orderEntry := ProposerOPBEntry{
-		Booth:   currBooth,
-		BlockId: m.BlockId,
-		CombSig: thresholdSig,
-		//Entries: blockOrderFrag.entries,
+		BlockchainId: m.BlockchainId,
+		Booth:        currBooth,
+		BlockId:      m.BlockId,
+		CombSig:      thresholdSig,
+		//Entries: blockOrderFrag.entries, ??
 		Hash: blockOrderFrag.hash,
 	}
 
@@ -252,7 +257,7 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 	}
 
 	cmtSnapshot.Lock()
-	cmtSnapshot.m[m.BlockId].tSig = thresholdSig
+	cmtSnapshot.m[m.BlockchainId][m.BlockId].tSig = thresholdSig
 	cmtSnapshot.Unlock()
 
 	// log.Infof("finish OBReply")

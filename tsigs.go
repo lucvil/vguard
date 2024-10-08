@@ -22,18 +22,18 @@ var suite = bn256.NewSuite()
 // var PublicPoly *share.PubPoly
 // var PrivateShare *share.PriShare
 
-func fetchKeysByBoothId(t, id, boothId int) (*share.PubPoly, *share.PriShare) {
+func fetchKeysByBoothId(t, id, boothId, blockchainId int) (*share.PubPoly, *share.PriShare) {
 	//var keys KeyMaster
 	//keys.FetchKeys(t, id)
 	var err error
 
-	PublicPoly, err := fetchPubPoly(t, boothId)
+	PublicPoly, err := fetchPubPoly(t, boothId, blockchainId)
 	if err != nil {
 		log.Error(err)
 		panic(errors.New("fetchPubPoly failed"))
 	}
 
-	PrivateShare, err := fetchPriShare(id, t, boothId)
+	PrivateShare, err := fetchPriShare(id, t, boothId, blockchainId)
 	if err != nil {
 		log.Error(err)
 		panic(errors.New("fetchPriShare failed"))
@@ -84,8 +84,7 @@ func fetchKeysByBoothId(t, id, boothId int) (*share.PubPoly, *share.PriShare) {
 // 	k.PriShare = pris
 // }
 
-func fetchPubPoly(t, boothId int) (*share.PubPoly, error) {
-	blockchainId := 0
+func fetchPubPoly(t, boothId, blockchainId int) (*share.PubPoly, error) {
 	readPubPoly, err := os.Open("./keys/" + strconv.Itoa(blockchainId) + "/" + strconv.Itoa(boothId) + "/vguard_pub.dupe")
 
 	if err != nil {
@@ -130,14 +129,13 @@ func fetchPubPoly(t, boothId int) (*share.PubPoly, error) {
 	return share.NewPubPoly(suite.G2(), suite.G2().Point().Base(), commits), nil
 }
 
-func fetchPriShare(serverId int, t int, boothId int) (*share.PriShare, error) {
+func fetchPriShare(serverId int, t int, boothId int, blockchainId int) (*share.PriShare, error) {
 	suite := bn256.NewSuite()
 	rand := suite.RandomStream()
 	secret := suite.G1().Scalar().Pick(rand)
 	priPoly := share.NewPriPoly(suite.G2(), t, secret, rand)
 
 	priShare := priPoly.Shares(1)[0]
-	blockchainId := 0
 
 	readPriShare, err := os.Open(fmt.Sprintf("./keys/%d/%d/pri_%d.dupe", blockchainId, boothId, serverId))
 	if err != nil {
