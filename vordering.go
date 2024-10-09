@@ -153,7 +153,11 @@ func startOrderingPhaseA(i int) {
 		shuffle.entries = make(map[int]Entry)
 
 		//broadcast
-		broadcastToBooth(postEntry, OPA, orderingBoothID)
+		if EvaluateCommPossibilityFlag {
+			broadcastToBoothWithCommCheck(postEntry, OPA, orderingBoothID)
+		} else {
+			broadcastToBooth(postEntry, OPA, orderingBoothID)
+		}
 
 		if YieldCycle != 0 {
 			if cycle%YieldCycle == 0 {
@@ -172,7 +176,7 @@ func startOrderingPhaseA(i int) {
 // input->ValidatorOPAReply
 func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 
-	log.Infof("start asyncHandleOBReply")
+	// log.Infof("start asyncHandleOBReply")
 
 	ordSnapshot.RLock()
 	blockOrderFrag, ok := ordSnapshot.m[m.BlockchainId][m.BlockId]

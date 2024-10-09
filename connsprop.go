@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"net"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -65,12 +66,18 @@ func runAsProposer(proposerId ServerId) {
 	// if ServerID != 1 {
 	// 	//以降の処理を停止
 	// 	fmt.Printf("aaaa")
+	// 	time.Sleep(1000)
 	// 	return
 	// }
 
 	//boothを作成、ID0とID1はかならず含む
 	//NumOfConn  "c", 6, "max # of connections"
 	// prepareBooths(NumOfConn, BoothSize)
+
+	fetchProToValComTimeMap([]ServerId{ServerId(ServerID)})
+	ValidatorList.Lock()
+	fetchValToProComTimeMap(ValidatorList.list)
+	ValidatorList.Unlock()
 
 	//データを事前に用意、requestQueueに格納
 	txGenerator(MsgSize)
@@ -122,6 +129,12 @@ func acceptValidatorConns(leaderId ServerId, wg *sync.WaitGroup, phase int) {
 		if err != nil {
 			log.Errorf("server registration err: %v", err)
 			return
+		} else {
+			ValidatorList.Lock()
+			if !(slices.Contains(ValidatorList.list, sid)) {
+				ValidatorList.list = append(ValidatorList.list, sid)
+			}
+			ValidatorList.Unlock()
 		}
 
 		switch phase {
@@ -237,13 +250,13 @@ func acceptProposerConns(leaderId ServerId, wg *sync.WaitGroup, phase int) {
 
 		switch phase {
 		case OPA:
-			go handleOPAConns(conn, sid)
+			go handleProposerOPAConns(conn, sid)
 		case OPB:
-			go handleOPBConns(conn, sid)
+			go handleProposerOPBConns(conn, sid)
 		case CPA:
-			go handleCPAConns(conn, sid)
+			go handleProposerCPAConns(conn, sid)
 		case CPB:
-			go handleCPBConns(conn, sid)
+			go handleProposerCPBConns(conn, sid)
 		}
 
 		connected++
@@ -253,4 +266,63 @@ func acceptProposerConns(leaderId ServerId, wg *sync.WaitGroup, phase int) {
 			// break
 		}
 	}
+}
+
+func handleProposerOPAConns(sConn *net.TCPConn, sid ServerId) {
+	//
+	//
+}
+
+// バリデータからのTCP応答を処理する
+func handleProposerOPBConns(sConn *net.TCPConn, sid ServerId) {
+	for {
+		var m ValidatorOPAReply
+
+		if err := concierge.n[OPB][sid].dec.Decode(&m); err == nil {
+			//mをlog.infofで出力する
+			// log.Infof("receive OB Reply message")
+			go asyncHandleOBReply(&m, sid)
+		} else if err == io.EOF {
+			log.Errorf("%s | server %v closed connection | err: %v", cmdPhase[OPB], sid, err)
+			break
+		} else {
+			log.Errorf("%s | gob decode Err: %v | conn with ser: %v | remoteAddr: %v",
+				cmdPhase[OPB], err, sid, (*sConn).RemoteAddr())
+			continue
+		}
+	}
+}
+
+func handleProposerCPAConns(sConn *net.TCPConn, sid ServerId) {
+
+	receiveCounter := int64(0)
+
+	for {
+		var m ValidatorCPAReply
+
+		err := concierge.n[CPA][sid].dec.Decode(&m)
+
+		counter := atomic.AddInt64(&receiveCounter, 1)
+
+		if err == io.EOF {
+			log.Errorf("%v | server %v closed connection | err: %v", time.Now(), sid, err)
+			break
+		}
+
+		if err != nil {
+			log.Errorf("Gob Decode Err: %v | conn with ser: %v | remoteAddr: %v | Now # %v", err, sid, (*sConn).RemoteAddr(), counter)
+			continue
+		}
+
+		if &m != nil {
+			go asyncHandleCPAReply(&m, sid)
+		} else {
+			log.Errorf("received message is nil")
+		}
+	}
+}
+
+func handleProposerCPBConns(sConn *net.TCPConn, sid ServerId) {
+	//
+	//
 }

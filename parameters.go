@@ -114,7 +114,14 @@ var (
 	VehicleSpeed     int
 
 	// for multiple proposer
-	ProposerList []ServerId
+	ProposerList  []ServerId
+	ValidatorList struct {
+		sync.Mutex
+		list []ServerId
+	}
+
+	// whether consider communication possiblity between proposer and validator
+	EvaluateCommPossibilityFlag bool
 
 	// ArterySimulationDelay float64
 
@@ -165,6 +172,7 @@ func loadCmdParameters() {
 	//flag.IntVar(&SleepTimeInSlowMode, "smt", 1, "slow mode cycle sleep time (second)")
 
 	// for multiple proposer
+	flag.BoolVar(&EvaluateCommPossibilityFlag, "ecf", false, "whether consider communication possiblity between proposer and validator")
 	// Add the proposer list flag
 	var proposerIds string
 	flag.StringVar(&proposerIds, "pl", "", "comma-separated list of proposer IDs")

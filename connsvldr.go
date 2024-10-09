@@ -13,6 +13,8 @@ func runAsValidator() {
 	defer proposerLookup.RUnlock()
 	proposerLookup.RLock()
 
+	fetchValToProComTimeMap([]ServerId{ServerId(ServerID)})
+
 	for _, coordinatorId := range proposerLookup.m[OPA] {
 		registerDialConn(coordinatorId, OPA, ListenerPortOPA)
 		registerDialConn(coordinatorId, OPB, ListenerPortOPB)

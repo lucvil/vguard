@@ -2,13 +2,13 @@ import json
 import random
 
 # データ生成に関する設定
-start_time = 0.00
+start_time = 100.00
 end_time = 300.99
 increment = 0.01
 
 # 生成するリストの値
-list1_values = [2, 3,4, 5, 6]
-list2_values = [7,8,9,10,11]
+list1_values = [4,7,8,9,11]
+list2_values = [2,3,5,6,10]
 
 # 出力用のデータを保持する辞書
 data = {}
@@ -37,7 +37,7 @@ while current_time <= end_time:
     current_time = round(current_time + increment, 2)
 
 # JSONファイルとして保存
-with open("data.json", "w") as json_file:
+with open("communication-data.json", "w") as json_file:
     json.dump(data, json_file, indent=4)
 
 print("データが 'vehicle_time_data.json' に保存されました。")

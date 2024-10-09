@@ -27,6 +27,16 @@ type Booth struct {
 	//Identities map[[32]byte]int
 }
 
+var proToValComTimeMap = struct {
+	sync.RWMutex
+	timeMap map[ServerId]map[string][]ServerId
+}{timeMap: make(map[ServerId]map[string][]ServerId)}
+
+var valToProComTimeMap = struct {
+	sync.RWMutex
+	timeMap map[ServerId]map[string][]ServerId
+}{timeMap: make(map[ServerId]map[string][]ServerId)}
+
 func (b *Booth) String() (string, error) {
 	if len(b.Indices) == 0 {
 		return "", errors.New("booth is nil")
@@ -55,7 +65,7 @@ var booMgr = struct {
 
 func fetchArteryData() {
 	// arteryFilePath := "../artery/scenarios/vguard-test/results/speed" + strconv.Itoa(VehicleSpeed) + "/300vehicle/extended_time_id.json"
-	arteryFilePath := "./data.json"
+	arteryFilePath := "./artery-data/data.json"
 
 	// JSONファイルを読み込む
 	file, err := os.Open(arteryFilePath)
@@ -82,6 +92,78 @@ func fetchArteryData() {
 
 func getThreshold(boothSize int) int {
 	return (boothSize / 3) * 2
+}
+
+func fetchProToValComTimeMap(proposerList []ServerId) {
+	for _, proposerId := range proposerList {
+		filePath := "./artery-data/communication-data-" + strconv.Itoa(int(proposerId)) + ".json"
+
+		// JSONファイルを読み込む
+		file, err := os.Open(filePath)
+		if err != nil {
+			fmt.Printf("Error opening file: %s\n", err)
+			return
+		}
+		defer file.Close()
+
+		// ファイルの内容を読み込む
+		byteValue, err := io.ReadAll(file)
+		if err != nil {
+			fmt.Printf("Error reading file: %s\n", err)
+			return
+		}
+
+		// JSONデコード
+		var proToValTimeMapItem map[string][]ServerId
+
+		if err := json.Unmarshal(byteValue, &proToValTimeMapItem); err != nil {
+			fmt.Printf("Error unmarshalling JSON: %s\n", err)
+			return
+		}
+
+		proToValComTimeMap.Lock()
+		if _, ok := proToValComTimeMap.timeMap[proposerId]; !ok {
+			proToValComTimeMap.timeMap[proposerId] = make(map[string][]ServerId)
+		}
+		proToValComTimeMap.timeMap[proposerId] = proToValTimeMapItem
+		proToValComTimeMap.Unlock()
+	}
+}
+
+func fetchValToProComTimeMap(validatorList []ServerId) {
+	for _, validatorId := range validatorList {
+		filePath := "./artery-data/communication-data-" + strconv.Itoa(int(validatorId)) + ".json"
+
+		// JSONファイルを読み込む
+		file, err := os.Open(filePath)
+		if err != nil {
+			fmt.Printf("Error opening file: %s\n", err)
+			return
+		}
+		defer file.Close()
+
+		// ファイルの内容を読み込む
+		byteValue, err := io.ReadAll(file)
+		if err != nil {
+			fmt.Printf("Error reading file: %s\n", err)
+			return
+		}
+
+		// JSONデコード
+		var valToProTimeMapItem map[string][]ServerId
+
+		if err := json.Unmarshal(byteValue, &valToProTimeMapItem); err != nil {
+			fmt.Printf("Error unmarshalling JSON: %s\n", err)
+			return
+		}
+
+		valToProComTimeMap.Lock()
+		if _, ok := valToProComTimeMap.timeMap[validatorId]; !ok {
+			valToProComTimeMap.timeMap[validatorId] = make(map[string][]ServerId)
+		}
+		valToProComTimeMap.timeMap[validatorId] = valToProTimeMapItem
+		valToProComTimeMap.Unlock()
+	}
 }
 
 // generateHash generates a SHA-256 hash of the given slice of integers
@@ -245,6 +327,90 @@ func broadcastToBooth(e interface{}, phase int, boothID int) {
 }
 
 func broadcastToNewBooth(regularMsg interface{}, phase int, boothID int, newMemberIDs []int, newMsg interface{}) {
+	if broadcastError {
+		return
+	}
+
+	boo := booMgr.b[boothID]
+
+	for _, i := range boo.Indices {
+		var err error
+
+		if ServerID == i {
+			continue
+		}
+
+		if concierge.n[phase][i] == nil {
+			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", i, phase, regularMsg)
+			continue
+		}
+
+		newMemberFlag := false
+		for _, newMember := range newMemberIDs {
+			if newMember == i {
+				//log.Errorf("newMember: %v is not in Booth: %v", newMember, boo.Indices)
+				newMemberFlag = true
+				err = concierge.n[phase][i].enc.Encode(newMsg)
+			}
+		}
+
+		if newMemberFlag {
+			continue
+		}
+
+		err = concierge.n[phase][i].enc.Encode(regularMsg)
+		if err != nil {
+			broadcastError = true
+			switch err {
+			case io.EOF:
+				log.Errorf("server %v closed connection | err: %v", concierge.n[phase][i].SID, err)
+				break
+			default:
+				log.Errorf("sent to server %v failed | err: %v", concierge.n[phase][i].SID, err)
+			}
+		}
+	}
+}
+
+// broadcastToBooth is used by the proposer to broadcast a given message to all members in a given booth
+func broadcastToBoothWithCommCheck(e interface{}, phase int, boothID int) {
+	if broadcastError {
+		return
+	}
+
+	boo := booMgr.b[boothID]
+
+	for _, i := range boo.Indices {
+		if ServerID == i {
+			continue
+		}
+
+		if concierge.n[phase][i] == nil {
+			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", i, phase, e)
+			continue
+		}
+
+		err := concierge.n[phase][i].enc.Encode(e)
+		if err != nil {
+			broadcastError = true
+			switch err {
+			case io.EOF:
+				log.Errorf("server %v closed connection | err: %v", concierge.n[phase][i].SID, err)
+				break
+			default:
+				log.Errorf("sent to server %v failed | err: %v", concierge.n[phase][i].SID, err)
+			}
+		}
+	}
+
+	nowTime := time.Now().UnixMilli()
+	switch e.(type) {
+	case ProposerOPAEntry:
+		log.Infof("broadcasted to booth %v , brock: %d| time: %v", boothID, e.(ProposerOPAEntry).BlockId, nowTime)
+	}
+}
+
+func broadcastToNewBoothWithCommCheck(regularMsg interface{}, phase int, boothID int, newMemberIDs []int, newMsg interface{}) {
 	if broadcastError {
 		return
 	}

@@ -132,6 +132,9 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 
 		if encoder == nil {
 			cmtSnapshot.Lock()
+			if cmtSnapshot.m[m.BlockchainId] == nil {
+				cmtSnapshot.m[m.BlockchainId] = make(map[int64]*blockSnapshot)
+			}
 			cmtSnapshot.m[m.BlockchainId][m.BlockId] = &blockSnapshot{
 				hash:    m.Hash,
 				entries: m.Entries,
