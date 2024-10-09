@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -225,6 +226,17 @@ func RoundToDecimal(value float64, places int) float64 {
 	return math.Round(value*shift) / shift
 }
 
+func getNowTimeKey() string {
+	nowTime := time.Now().UnixMilli()
+	pastTime := float64(nowTime) - float64(simulationStartTime)
+	pastTime = pastTime/1000 + ArterySimulationDelay
+	pastTime = RoundToDecimal(pastTime, 3)
+
+	key := fmt.Sprintf("%.2f", pastTime)
+
+	return key
+}
+
 func getBoothID() int {
 	var pattern []int
 	nowTime := time.Now().UnixMilli()
@@ -232,7 +244,7 @@ func getBoothID() int {
 	pastTime = pastTime/1000 + ArterySimulationDelay
 	pastTime = RoundToDecimal(pastTime, 3)
 
-	key := fmt.Sprintf("%.2f", pastTime)
+	key := getNowTimeKey()
 	pattern = vehicleTimeData[key][ServerId(ServerID)]
 	//logにpatternとpastTimeを記述
 	// log.Infof("pattern:%v, pastTime: %f", pattern, key)
@@ -372,8 +384,30 @@ func broadcastToNewBooth(regularMsg interface{}, phase int, boothID int, newMemb
 	}
 }
 
+func checkComPathToValidator(validatorId int) (bool, int) {
+	var needDetour bool
+	var detourNextNode int
+	timeKey := getNowTimeKey()
+
+	communicableValidatorList := proToValComTimeMap.timeMap[ServerId(ServerID)][timeKey]
+	if slices.Contains(communicableValidatorList, ServerId(validatorId)) {
+		needDetour = false
+		detourNextNode = validatorId
+		return needDetour, detourNextNode
+	} else {
+		communicableProposerList := valToProComTimeMap.timeMap[ServerId(validatorId)][timeKey]
+		needDetour = true
+		if len(communicableProposerList) == 0 {
+			detourNextNode = -1
+		} else {
+			detourNextNode = int(communicableProposerList[0])
+		}
+		return needDetour, detourNextNode
+	}
+}
+
 // broadcastToBooth is used by the proposer to broadcast a given message to all members in a given booth
-func broadcastToBoothWithCommCheck(e interface{}, phase int, boothID int) {
+func broadcastToBoothWithComCheck(e interface{}, phase int, boothID int) {
 	if broadcastError {
 		return
 	}
@@ -385,20 +419,36 @@ func broadcastToBoothWithCommCheck(e interface{}, phase int, boothID int) {
 			continue
 		}
 
-		if concierge.n[phase][i] == nil {
+		needDetour, detourNextNode := checkComPathToValidator(i)
+		var nextNode int
+		var message any
+		if needDetour {
+			nextNode = detourNextNode
+			message = BetweenProposerMsg{
+				message:   e,
+				sender:    ServerID,
+				recipient: i,
+				phase:     phase,
+			}
+		} else {
+			nextNode = i
+			message = e
+		}
+
+		if concierge.n[phase][nextNode] == nil {
 			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", i, phase, e)
 			continue
 		}
 
-		err := concierge.n[phase][i].enc.Encode(e)
+		err := concierge.n[phase][nextNode].enc.Encode(message)
 		if err != nil {
 			broadcastError = true
 			switch err {
 			case io.EOF:
-				log.Errorf("server %v closed connection | err: %v", concierge.n[phase][i].SID, err)
+				log.Errorf("server %v closed connection |needDetour: %t| err: %v", concierge.n[phase][nextNode].SID, needDetour, err)
 				break
 			default:
-				log.Errorf("sent to server %v failed | err: %v", concierge.n[phase][i].SID, err)
+				log.Errorf("sent to server %v failed |needDetour: %t| err: %v", concierge.n[phase][nextNode].SID, needDetour, err)
 			}
 		}
 	}
@@ -410,7 +460,7 @@ func broadcastToBoothWithCommCheck(e interface{}, phase int, boothID int) {
 	}
 }
 
-func broadcastToNewBoothWithCommCheck(regularMsg interface{}, phase int, boothID int, newMemberIDs []int, newMsg interface{}) {
+func broadcastToNewBoothWithComCheck(regularMsg interface{}, phase int, boothID int, newMemberIDs []int, newMsg interface{}) {
 	if broadcastError {
 		return
 	}
@@ -424,7 +474,16 @@ func broadcastToNewBoothWithCommCheck(regularMsg interface{}, phase int, boothID
 			continue
 		}
 
-		if concierge.n[phase][i] == nil {
+		needDetour, detourNextNode := checkComPathToValidator(i)
+		var nextNode int
+		var message any
+		if needDetour {
+			nextNode = detourNextNode
+		} else {
+			nextNode = i
+		}
+
+		if concierge.n[phase][nextNode] == nil {
 			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", i, phase, regularMsg)
 			continue
 		}
@@ -434,7 +493,17 @@ func broadcastToNewBoothWithCommCheck(regularMsg interface{}, phase int, boothID
 			if newMember == i {
 				//log.Errorf("newMember: %v is not in Booth: %v", newMember, boo.Indices)
 				newMemberFlag = true
-				err = concierge.n[phase][i].enc.Encode(newMsg)
+				if needDetour {
+					message = BetweenProposerMsg{
+						message:   newMsg,
+						sender:    ServerID,
+						recipient: i,
+						phase:     phase,
+					}
+				} else {
+					message = newMsg
+				}
+				err = concierge.n[phase][nextNode].enc.Encode(message)
 			}
 		}
 
@@ -442,7 +511,18 @@ func broadcastToNewBoothWithCommCheck(regularMsg interface{}, phase int, boothID
 			continue
 		}
 
-		err = concierge.n[phase][i].enc.Encode(regularMsg)
+		if needDetour {
+			message = BetweenProposerMsg{
+				message:   regularMsg,
+				sender:    ServerID,
+				recipient: i,
+				phase:     phase,
+			}
+		} else {
+			message = regularMsg
+		}
+
+		err = concierge.n[phase][i].enc.Encode(message)
 		if err != nil {
 			broadcastError = true
 			switch err {

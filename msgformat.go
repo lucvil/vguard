@@ -75,3 +75,10 @@ type ValidatorCPBReply struct {
 	Done         bool
 	//ParSig	[]byte
 }
+
+type BetweenProposerMsg struct {
+	message   any
+	sender    int
+	recipient int
+	phase     int
+}

@@ -154,7 +154,7 @@ func startOrderingPhaseA(i int) {
 
 		//broadcast
 		if EvaluateCommPossibilityFlag {
-			broadcastToBoothWithCommCheck(postEntry, OPA, orderingBoothID)
+			broadcastToBoothWithComCheck(postEntry, OPA, orderingBoothID)
 		} else {
 			broadcastToBooth(postEntry, OPA, orderingBoothID)
 		}
