@@ -10,8 +10,8 @@ import (
 
 var valiConsJobStack = struct {
 	sync.RWMutex
-	s map[int]chan int // <ConsInstID, chan 1>
-}{s: make(map[int]chan int)}
+	s map[int]map[int]chan int // map<blockchainId, map<ConsInstID, chan 1>>
+}{s: make(map[int]map[int]chan int)}
 
 var valiOrdJobStack = struct {
 	sync.RWMutex
@@ -41,10 +41,16 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 		booth:   m.Booth,
 	}
 
+	if _, ok := ordSnapshot.m[m.BlockchainId]; !ok {
+		ordSnapshot.m[m.BlockchainId] = make(map[int64]*blockSnapshot)
+	}
 	ordSnapshot.m[m.BlockchainId][m.BlockId] = &snapshot
 	ordSnapshot.Unlock()
 
 	cmtSnapshot.Lock()
+	if _, ok := cmtSnapshot.m[m.BlockchainId]; !ok {
+		cmtSnapshot.m[m.BlockchainId] = make(map[int64]*blockSnapshot)
+	}
 	cmtSnapshot.m[m.BlockchainId][m.BlockId] = &blockSnapshot{
 		hash:    m.Hash,
 		entries: m.Entries,
@@ -54,6 +60,9 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 
 	//validation??
 	valiOrdJobStack.Lock()
+	if _, ok := valiOrdJobStack.s[m.BlockchainId]; !ok {
+		valiOrdJobStack.s[m.BlockchainId] = make(map[int64]chan int)
+	}
 	if s, ok := valiOrdJobStack.s[m.BlockchainId][m.BlockId]; !ok {
 		//容量1の整数型バッファ付きチャンネルを作成する式
 		s := make(chan int, 1)
@@ -67,8 +76,6 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 	}
 
 	cmtSnapshot.Unlock()
-
-	//ここまで
 
 	//署名を作成します
 	threshold := getThreshold(len(m.Booth.Indices))
@@ -167,7 +174,10 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 	log.Debugf("%s | ProposerCPAEntry received (RangeId: %d) @ %v", rpyPhase[CPA], m.ConsInstID, time.Now().UTC().String())
 
 	vgTxData.Lock()
-	vgTxData.tx[m.ConsInstID] = make(map[string][][]Entry)
+	if _, ok := vgTxData.tx[m.BlockchainId]; !ok {
+		vgTxData.tx[m.BlockchainId] = make(map[int]map[string][][]Entry)
+	}
+	vgTxData.tx[m.BlockchainId][m.ConsInstID] = make(map[string][][]Entry)
 	vgTxData.Unlock()
 
 	if m.PrevOPBEntries != nil {
@@ -185,7 +195,7 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 
 	for _, blockID := range m.BIDs {
 		cmtSnapshot.RLock()
-		snapshot, ok := cmtSnapshot.m[blockID]
+		snapshot, ok := cmtSnapshot.m[m.BlockchainId][blockID]
 		cmtSnapshot.RUnlock()
 
 		if !ok {
@@ -212,18 +222,21 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 		}
 
 		vgTxData.Lock()
-		if _, ok := vgTxData.tx[m.ConsInstID][boo]; ok {
-			vgTxData.tx[m.ConsInstID][boo] = append(vgTxData.tx[m.ConsInstID][boo], blockEntries)
+		if _, ok := vgTxData.tx[m.BlockchainId][m.ConsInstID][boo]; ok {
+			vgTxData.tx[m.BlockchainId][m.ConsInstID][boo] = append(vgTxData.tx[m.BlockchainId][m.ConsInstID][boo], blockEntries)
 		} else {
-			vgTxData.tx[m.ConsInstID][boo] = [][]Entry{blockEntries}
+			vgTxData.tx[m.BlockchainId][m.ConsInstID][boo] = [][]Entry{blockEntries}
 		}
 
-		vgTxData.boo[m.ConsInstID] = m.Booth
+		if _, ok := vgTxData.boo[m.BlockchainId]; !ok {
+			vgTxData.boo[m.BlockchainId] = make(map[int]Booth)
+		}
+		vgTxData.boo[m.BlockchainId][m.ConsInstID] = m.Booth
 		vgTxData.Unlock()
 	}
 
 	threshold := getThreshold(len(m.Booth.Indices))
-	_, privateShareVCA := fetchKeysByBoothId(threshold, ServerID, m.Booth.ID)
+	_, privateShareVCA := fetchKeysByBoothId(threshold, ServerID, m.Booth.ID, m.BlockchainId)
 	partialSig, err := PenSign(m.TotalHash, privateShareVCA)
 	if err != nil {
 		log.Errorf("PenSign failed: %v", err)
@@ -231,18 +244,26 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 	}
 
 	replyCA := ValidatorCPAReply{
-		ConsInstID: m.ConsInstID,
-		ParSig:     partialSig,
+		BlockchainId: m.BlockchainId,
+		ConsInstID:   m.ConsInstID,
+		ParSig:       partialSig,
 	}
 
 	vgTxMeta.Lock()
-	vgTxMeta.hash[m.ConsInstID] = m.TotalHash
+	if _, ok := vgTxMeta.hash[m.BlockchainId]; !ok {
+		vgTxMeta.hash[m.BlockchainId] = make(map[int][]byte)
+	}
+	vgTxMeta.hash[m.BlockchainId][m.ConsInstID] = m.TotalHash
 	vgTxMeta.Unlock()
 
 	valiConsJobStack.Lock()
-	if s, ok := valiConsJobStack.s[m.ConsInstID]; !ok {
+	if _, ok := valiConsJobStack.s[m.BlockchainId]; !ok {
+		valiConsJobStack.s[m.BlockchainId] = make(map[int]chan int)
+	}
+
+	if s, ok := valiConsJobStack.s[m.BlockchainId][m.ConsInstID]; !ok {
 		s := make(chan int, 1)
-		valiConsJobStack.s[m.ConsInstID] = s
+		valiConsJobStack.s[m.BlockchainId][m.ConsInstID] = s
 		valiConsJobStack.Unlock()
 		s <- 1
 	} else {
@@ -260,7 +281,7 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 func validatingCBEntry(m *ProposerCPBEntry, encoder *gob.Encoder) {
 
 	vgTxMeta.RLock()
-	_, ok := vgTxMeta.hash[m.ConsInstID]
+	_, ok := vgTxMeta.hash[m.BlockchainId][m.ConsInstID]
 	vgTxMeta.RUnlock()
 
 	if !ok {
@@ -269,9 +290,13 @@ func validatingCBEntry(m *ProposerCPBEntry, encoder *gob.Encoder) {
 
 	// Wait for prior job to be finished first
 	valiConsJobStack.Lock()
-	if s, ok := valiConsJobStack.s[m.ConsInstID]; !ok {
+	if _, ok := valiConsJobStack.s[m.BlockchainId]; !ok {
+		valiConsJobStack.s[m.BlockchainId] = make(map[int]chan int)
+	}
+
+	if s, ok := valiConsJobStack.s[m.BlockchainId][m.ConsInstID]; !ok {
 		s := make(chan int, 1)
-		valiConsJobStack.s[m.ConsInstID] = s
+		valiConsJobStack.s[m.BlockchainId][m.ConsInstID] = s
 		valiConsJobStack.Unlock()
 		<-s
 	} else {
@@ -280,7 +305,7 @@ func validatingCBEntry(m *ProposerCPBEntry, encoder *gob.Encoder) {
 	}
 
 	threshold := getThreshold(len(m.Booth.Indices))
-	publicPolyVCB, _ := fetchKeysByBoothId(threshold, ServerID, m.Booth.ID)
+	publicPolyVCB, _ := fetchKeysByBoothId(threshold, ServerID, m.Booth.ID, m.BlockchainId)
 	err := PenVerify(m.Hash, m.ComSig, publicPolyVCB)
 	if err != nil {
 		log.Errorf("%v | PenVerify failed; err: %v", rpyPhase[CPB], err)

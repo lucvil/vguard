@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"sync"
@@ -26,6 +25,9 @@ func runAsProposer(proposerId ServerId) {
 	for i := 0; i < NOP; i++ {
 		//validator接続の受け入れ
 		blockchainInfo.Lock()
+		if blockchainInfo.m[ServerID] == nil {
+			blockchainInfo.m[ServerID] = make(map[Phase]ServerId)
+		}
 		blockchainInfo.m[ServerID][Phase(i)] = ServerId(ServerID)
 		blockchainInfo.Unlock()
 		go acceptValidatorConns(proposerId, &wg, i)
@@ -60,11 +62,11 @@ func runAsProposer(proposerId ServerId) {
 	wg.Wait()
 	log.Infof("Network connections are now set | # of phases: %v", NOP)
 
-	if ServerID != 0 {
-		//以降の処理を停止
-		fmt.Printf("aaaa")
-		return
-	}
+	// if ServerID != 1 {
+	// 	//以降の処理を停止
+	// 	fmt.Printf("aaaa")
+	// 	return
+	// }
 
 	//boothを作成、ID0とID1はかならず含む
 	//NumOfConn  "c", 6, "max # of connections"

@@ -43,28 +43,28 @@ type blockSnapshot struct {
 
 var vgTxMeta = struct {
 	sync.RWMutex
-	sigs     map[int][][]byte // <rangeId, sigs[]>
-	hash     map[int][]byte
-	blockIDs map[int][]int64 // <rangeId, []blockIDs>
+	sigs     map[int]map[int][][]byte // map<blockchainId, map<rangeId, sigs[]>>
+	hash     map[int]map[int][]byte
+	blockIDs map[int]map[int][]int64 // map<blockchainId, map<rangeId, []blockIDs>>
 }{
-	sigs:     make(map[int][][]byte),
-	hash:     make(map[int][]byte),
-	blockIDs: make(map[int][]int64),
+	sigs:     make(map[int]map[int][][]byte),
+	hash:     make(map[int]map[int][]byte),
+	blockIDs: make(map[int]map[int][]int64),
 }
 
 var vgTxData = struct {
 	sync.RWMutex
-	tx  map[int]map[string][][]Entry // map<consInstID, map<orderingBooth, []entry>>
-	boo map[int]Booth                //<consInstID, Booth>
+	tx  map[int]map[int]map[string][][]Entry // map<blockchainId, map<consInstID, map<orderingBooth, []entry>>>
+	boo map[int]map[int]Booth                //map<blockchainId, map<consInstID, Booth>>
 }{
-	tx:  make(map[int]map[string][][]Entry),
-	boo: make(map[int]Booth),
+	tx:  make(map[int]map[int]map[string][][]Entry),
+	boo: make(map[int]map[int]Booth),
 }
 
-func storeVgTx(consInstID int) {
+func storeVgTx(consInstID int, blockchainId int) {
 	vgTxData.RLock()
-	ordBoo := vgTxData.tx[consInstID]
-	cmtBoo := vgTxData.boo[consInstID]
+	ordBoo := vgTxData.tx[blockchainId][consInstID]
+	cmtBoo := vgTxData.boo[blockchainId][consInstID]
 	vgTxData.RUnlock()
 
 	nowTime := time.Now().UnixMilli()

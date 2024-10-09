@@ -22,10 +22,12 @@ func runAsValidator() {
 
 	log.Debugf("... registerDialConn completed ...")
 
-	go receivingOADialMessages(proposerLookup.m[OPA][0])
-	go receivingOBDialMessages(proposerLookup.m[OPB][0])
-	go receivingCADialMessages(proposerLookup.m[CPA][0])
-	go receivingCBDialMessages(proposerLookup.m[CPB][0])
+	for _, coordinatorId := range proposerLookup.m[OPA] {
+		go receivingOADialMessages(proposerLookup.m[OPA][coordinatorId])
+		go receivingOBDialMessages(proposerLookup.m[OPB][coordinatorId])
+		go receivingCADialMessages(proposerLookup.m[CPA][coordinatorId])
+		go receivingCBDialMessages(proposerLookup.m[CPB][coordinatorId])
+	}
 }
 
 func registerDialConn(coordinatorId ServerId, phaseNumber Phase, portNumber int) {
@@ -51,6 +53,9 @@ func registerDialConn(coordinatorId ServerId, phaseNumber Phase, portNumber int)
 	dialogMgr.Unlock()
 
 	blockchainInfo.Lock()
+	if blockchainInfo.m[int(coordinatorId)] == nil {
+		blockchainInfo.m[int(coordinatorId)] = make(map[Phase]ServerId)
+	}
 	blockchainInfo.m[int(coordinatorId)][phaseNumber] = coordinatorId
 	blockchainInfo.Unlock()
 

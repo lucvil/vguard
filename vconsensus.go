@@ -51,7 +51,13 @@ func startConsensusPhaseA() {
 		blockHashesInRange := make(map[int64][]byte)
 
 		vgTxData.Lock()
-		vgTxData.tx[consInstID] = make(map[string][][]Entry)
+		if _, ok := vgTxData.tx[blockchainId]; !ok {
+			vgTxData.tx[blockchainId] = make(map[int]map[string][][]Entry)
+		}
+		if _, ok := vgTxData.boo[blockchainId]; !ok {
+			vgTxData.boo[blockchainId] = make(map[int]Booth)
+		}
+		vgTxData.tx[blockchainId][consInstID] = make(map[string][][]Entry)
 		vgTxData.Unlock()
 
 		var newMembers []int
@@ -113,13 +119,13 @@ func startConsensusPhaseA() {
 			}
 
 			vgTxData.Lock()
-			if _, ok := vgTxData.tx[consInstID][boo]; ok {
-				vgTxData.tx[consInstID][boo] = append(vgTxData.tx[consInstID][boo], blockEntries)
+			if _, ok := vgTxData.tx[blockchainId][consInstID][boo]; ok {
+				vgTxData.tx[blockchainId][consInstID][boo] = append(vgTxData.tx[blockchainId][consInstID][boo], blockEntries)
 			} else {
-				vgTxData.tx[consInstID][boo] = [][]Entry{blockEntries}
+				vgTxData.tx[blockchainId][consInstID][boo] = [][]Entry{blockEntries}
 			}
 
-			vgTxData.boo[consInstID] = commitBooth
+			vgTxData.boo[blockchainId][consInstID] = commitBooth
 			vgTxData.Unlock()
 		}
 		nowTime = time.Now().UnixMilli()
@@ -146,8 +152,17 @@ func startConsensusPhaseA() {
 
 		// store the hash and blockIDRange before sending to vaidators
 		vgTxMeta.Lock()
-		vgTxMeta.hash[consInstID] = totalHash
-		vgTxMeta.blockIDs[consInstID] = blockIDRange
+		if _, ok := vgTxMeta.sigs[blockchainId]; !ok {
+			vgTxMeta.sigs[blockchainId] = make(map[int][][]byte)
+		}
+		if _, ok := vgTxMeta.hash[blockchainId]; !ok {
+			vgTxMeta.hash[blockchainId] = make(map[int][]byte)
+		}
+		if _, ok := vgTxMeta.blockIDs[blockchainId]; !ok {
+			vgTxMeta.blockIDs[blockchainId] = make(map[int][]int64)
+		}
+		vgTxMeta.hash[blockchainId][consInstID] = totalHash
+		vgTxMeta.blockIDs[blockchainId][consInstID] = blockIDRange
 		vgTxMeta.Unlock()
 
 		nowTime = time.Now().UnixMilli()
@@ -171,8 +186,8 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	nowTime := time.Now().UnixMilli()
 
 	vgTxMeta.RLock()
-	fetchedTotalHash, ok := vgTxMeta.hash[m.ConsInstID]
-	partialSig := vgTxMeta.sigs[m.ConsInstID]
+	fetchedTotalHash, ok := vgTxMeta.hash[m.BlockchainId][m.ConsInstID]
+	partialSig := vgTxMeta.sigs[m.BlockchainId][m.ConsInstID]
 	vgTxMeta.RUnlock()
 
 	if !ok {
@@ -181,7 +196,7 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	}
 
 	vgTxData.RLock()
-	residingBooth := vgTxData.boo[m.ConsInstID]
+	residingBooth := vgTxData.boo[m.BlockchainId][m.ConsInstID]
 	vgTxData.RUnlock()
 
 	boothSize := len(residingBooth.Indices)
@@ -196,7 +211,7 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	partialSig = append(partialSig, m.ParSig)
 
 	vgTxMeta.Lock()
-	vgTxMeta.sigs[m.ConsInstID] = partialSig
+	vgTxMeta.sigs[m.BlockchainId][m.ConsInstID] = partialSig
 	vgTxMeta.Unlock()
 
 	if len(partialSig) < threshold {
@@ -210,7 +225,7 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	log.Infof("start consensus phase_b_pro of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 	log.Debugf(" ** votes sufficient | rangeId: %v | votes: %d | sid: %v", m.ConsInstID, len(partialSig), sid)
 
-	publicPolyPCA, _ := fetchKeysByBoothId(threshold, ServerID, residingBooth.ID)
+	publicPolyPCA, _ := fetchKeysByBoothId(threshold, ServerID, residingBooth.ID, m.BlockchainId)
 	recoveredSig, err := PenRecovery(partialSig, &fetchedTotalHash, publicPolyPCA, boothSize)
 	if err != nil {
 		log.Errorf("%s | PenRecovery failed | len(sigShares): %d | error: %v", cmdPhase[CPA], len(partialSig), err)
@@ -218,10 +233,11 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	}
 
 	entryCB := ProposerCPBEntry{
-		Booth:      residingBooth,
-		ConsInstID: m.ConsInstID,
-		ComSig:     recoveredSig,
-		Hash:       fetchedTotalHash,
+		BlockchainId: m.BlockchainId,
+		Booth:        residingBooth,
+		ConsInstID:   m.ConsInstID,
+		ComSig:       recoveredSig,
+		Hash:         fetchedTotalHash,
 	}
 
 	broadcastToBooth(entryCB, CPB, residingBooth.ID)

@@ -56,19 +56,22 @@ func (p *ProposerCPAEntry) SetPrevOPBEntries(m []ProposerOPBEntry) {
 }
 
 type ValidatorCPAReply struct {
-	ConsInstID int
-	ParSig     []byte
+	BlockchainId int
+	ConsInstID   int
+	ParSig       []byte
 }
 
 type ProposerCPBEntry struct {
 	Booth
-	ConsInstID int
-	ComSig     []byte
-	Hash       []byte
+	BlockchainId int
+	ConsInstID   int
+	ComSig       []byte
+	Hash         []byte
 }
 
 type ValidatorCPBReply struct {
-	ConsInstID int
-	Done       bool
+	BlockchainId int
+	ConsInstID   int
+	Done         bool
 	//ParSig	[]byte
 }

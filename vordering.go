@@ -135,10 +135,16 @@ func startOrderingPhaseA(i int) {
 		}
 
 		ordSnapshot.Lock()
+		if _, ok := ordSnapshot.m[postEntry.BlockchainId]; !ok {
+			ordSnapshot.m[postEntry.BlockchainId] = make(map[int64]*blockSnapshot)
+		}
 		ordSnapshot.m[postEntry.BlockchainId][postEntry.BlockId] = &blockOrderFrag
 		ordSnapshot.Unlock()
 
 		cmtSnapshot.Lock()
+		if _, ok := cmtSnapshot.m[postEntry.BlockchainId]; !ok {
+			cmtSnapshot.m[postEntry.BlockchainId] = make(map[int64]*blockSnapshot)
+		}
 		cmtSnapshot.m[postEntry.BlockchainId][postEntry.BlockId] = &blockCommitFrag
 		cmtSnapshot.Unlock()
 
