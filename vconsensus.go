@@ -169,12 +169,20 @@ func startConsensusPhaseA() {
 		log.Infof("end consensus phase_a_pro of consInstId: %d,Timestamp: %d, lenBlockRange: %d", consInstID, nowTime, len(blockIDRange))
 
 		if newMembers == nil {
-			broadcastToBooth(entryCA, CPA, commitBoothID)
+			if EvaluateComPossibilityFlag {
+				broadcastToBoothWithComCheck(entryCA, CPA, commitBoothID)
+			} else {
+				broadcastToBooth(entryCA, CPA, commitBoothID)
+			}
 		} else {
 			newEntryCA := entryCA
 			newEntryCA.SetPrevOPBEntries(resentOPBEntries)
 			log.Debugf("%s | sending newEntry CA to %v | len(resentOPBEntries): %v", cmdPhase[CPA], newMembers, len(resentOPBEntries))
-			broadcastToNewBooth(entryCA, CPA, commitBoothID, newMembers, newEntryCA)
+			if EvaluateComPossibilityFlag {
+				broadcastToNewBoothWithComCheck(entryCA, CPA, commitBoothID, newMembers, newEntryCA)
+			} else {
+				broadcastToNewBooth(entryCA, CPA, commitBoothID, newMembers, newEntryCA)
+			}
 		}
 
 		consInstID++
@@ -240,7 +248,11 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 		Hash:         fetchedTotalHash,
 	}
 
-	broadcastToBooth(entryCB, CPB, residingBooth.ID)
+	if EvaluateComPossibilityFlag {
+		broadcastToBoothWithComCheck(entryCB, CPB, residingBooth.ID)
+	} else {
+		broadcastToBooth(entryCB, CPB, residingBooth.ID)
+	}
 
 	nowTime = time.Now().UnixMilli()
 	log.Infof("end consensus of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)

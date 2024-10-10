@@ -7,8 +7,8 @@ end_time = 300.99
 increment = 0.01
 
 # 生成するリストの値
-list1_values = [4,7,8,9,11]
-list2_values = [2,3,5,6,10]
+list1_values = [2,3,4,5,6]
+list2_values = [7,8,9,10,11]
 
 # 出力用のデータを保持する辞書
 data = {}

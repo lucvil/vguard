@@ -153,7 +153,7 @@ func startOrderingPhaseA(i int) {
 		shuffle.entries = make(map[int]Entry)
 
 		//broadcast
-		if EvaluateCommPossibilityFlag {
+		if EvaluateComPossibilityFlag {
 			broadcastToBoothWithComCheck(postEntry, OPA, orderingBoothID)
 		} else {
 			broadcastToBooth(postEntry, OPA, orderingBoothID)
@@ -271,8 +271,11 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 	cmtSnapshot.Unlock()
 
 	// log.Infof("finish OBReply")
-
-	broadcastToBooth(orderEntry, OPB, currBooth.ID)
+	if EvaluateComPossibilityFlag {
+		broadcastToBoothWithComCheck(orderEntry, OPB, currBooth.ID)
+	} else {
+		broadcastToBooth(orderEntry, OPB, currBooth.ID)
+	}
 
 	nowTime := time.Now().UnixMilli()
 	log.Infof("end ordering of block %d, Timestamp: %d", m.BlockId, nowTime)

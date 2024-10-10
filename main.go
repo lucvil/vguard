@@ -50,6 +50,8 @@ func init() {
 	// 要変更
 	initConns(NumOfConn)
 
+	initGob()
+
 	// fetchArteryData()
 
 	metre.init()

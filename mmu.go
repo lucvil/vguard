@@ -425,18 +425,23 @@ func broadcastToBoothWithComCheck(e interface{}, phase int, boothID int) {
 		if needDetour {
 			nextNode = detourNextNode
 			message = BetweenProposerMsg{
-				message:   e,
-				sender:    ServerID,
-				recipient: i,
-				phase:     phase,
+				Message:   e,
+				Sender:    ServerID,
+				Recipient: i,
+				Phase:     phase,
 			}
 		} else {
 			nextNode = i
 			message = e
 		}
 
+		if nextNode == -1 {
+			log.Infof("server %v cannot communicate with any proposer", i)
+			continue
+		}
+
 		if concierge.n[phase][nextNode] == nil {
-			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", i, phase, e)
+			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", nextNode, phase, e)
 			continue
 		}
 
@@ -483,8 +488,13 @@ func broadcastToNewBoothWithComCheck(regularMsg interface{}, phase int, boothID 
 			nextNode = i
 		}
 
+		if nextNode == -1 {
+			log.Infof("server %v cannot communicate with any proposer", i)
+			continue
+		}
+
 		if concierge.n[phase][nextNode] == nil {
-			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", i, phase, regularMsg)
+			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", nextNode, phase, regularMsg)
 			continue
 		}
 
@@ -495,10 +505,10 @@ func broadcastToNewBoothWithComCheck(regularMsg interface{}, phase int, boothID 
 				newMemberFlag = true
 				if needDetour {
 					message = BetweenProposerMsg{
-						message:   newMsg,
-						sender:    ServerID,
-						recipient: i,
-						phase:     phase,
+						Message:   newMsg,
+						Sender:    ServerID,
+						Recipient: i,
+						Phase:     phase,
 					}
 				} else {
 					message = newMsg
@@ -513,16 +523,16 @@ func broadcastToNewBoothWithComCheck(regularMsg interface{}, phase int, boothID 
 
 		if needDetour {
 			message = BetweenProposerMsg{
-				message:   regularMsg,
-				sender:    ServerID,
-				recipient: i,
-				phase:     phase,
+				Message:   regularMsg,
+				Sender:    ServerID,
+				Recipient: i,
+				Phase:     phase,
 			}
 		} else {
 			message = regularMsg
 		}
 
-		err = concierge.n[phase][i].enc.Encode(message)
+		err = concierge.n[phase][nextNode].enc.Encode(message)
 		if err != nil {
 			broadcastError = true
 			switch err {

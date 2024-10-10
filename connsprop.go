@@ -59,6 +59,17 @@ func runAsProposer(proposerId ServerId) {
 		registerDialConn(coordinatorId, CPB, ListenerPortOCB)
 	}
 
+	for _, coordinatorId := range proposerLookup.m[OPA] {
+		if coordinatorId == ServerId(ServerID) {
+			continue
+		}
+
+		go relayBetweenProposerMessage(proposerLookup.m[OPA][coordinatorId], OPA)
+		go relayBetweenProposerMessage(proposerLookup.m[OPB][coordinatorId], OPB)
+		go relayBetweenProposerMessage(proposerLookup.m[CPA][coordinatorId], CPA)
+		go relayBetweenProposerMessage(proposerLookup.m[CPB][coordinatorId], CPB)
+	}
+
 	//すべてのバリデーターが揃うまで待機
 	wg.Wait()
 	log.Infof("Network connections are now set | # of phases: %v", NOP)
@@ -170,6 +181,19 @@ func handleOPBConns(sConn *net.TCPConn, sid ServerId) {
 		if err := concierge.n[OPB][sid].dec.Decode(&m); err == nil {
 			//mをlog.infofで出力する
 			// log.Infof("receive OB Reply message")
+			if blockchainInfo.m[m.BlockchainId][OPB] != ServerId(ServerID) {
+				sendMessage := BetweenProposerMsg{
+					Message:   m,
+					Sender:    int(sid),
+					Recipient: int(blockchainInfo.m[m.BlockchainId][OPB]),
+					Phase:     OPB,
+				}
+				dialogMgr.RLock()
+				sendDialogInfo := dialogMgr.conns[OPB][blockchainInfo.m[m.BlockchainId][OPB]]
+				dialSendBack(sendMessage, sendDialogInfo.enc, OPB)
+				continue
+			}
+
 			go asyncHandleOBReply(&m, sid)
 		} else if err == io.EOF {
 			log.Errorf("%s | server %v closed connection | err: %v", cmdPhase[OPB], sid, err)
@@ -204,6 +228,19 @@ func handleCPAConns(sConn *net.TCPConn, sid ServerId) {
 		}
 
 		if &m != nil {
+			if blockchainInfo.m[m.BlockchainId][CPA] != ServerId(ServerID) {
+				sendMessage := BetweenProposerMsg{
+					Message:   m,
+					Sender:    int(sid),
+					Recipient: int(blockchainInfo.m[m.BlockchainId][CPA]),
+					Phase:     CPA,
+				}
+				dialogMgr.RLock()
+				sendDialogInfo := dialogMgr.conns[CPA][blockchainInfo.m[m.BlockchainId][CPA]]
+				dialSendBack(sendMessage, sendDialogInfo.enc, CPA)
+				continue
+			}
+
 			go asyncHandleCPAReply(&m, sid)
 		} else {
 			log.Errorf("received message is nil")
@@ -233,6 +270,9 @@ func acceptProposerConns(leaderId ServerId, wg *sync.WaitGroup, phase int) {
 	log.Infof("%s | listener is up at %s", cmdPhase[phase], listener.Addr().String())
 
 	connected := 0
+	if connected == len(ProposerList)-1 {
+		wg.Done()
+	}
 
 	//接続を無限ループ内で受付(validator向け)
 	for {
@@ -276,12 +316,18 @@ func handleProposerOPAConns(sConn *net.TCPConn, sid ServerId) {
 // バリデータからのTCP応答を処理する
 func handleProposerOPBConns(sConn *net.TCPConn, sid ServerId) {
 	for {
-		var m ValidatorOPAReply
+		var receivedMessage BetweenProposerMsg
 
-		if err := concierge.n[OPB][sid].dec.Decode(&m); err == nil {
+		if err := concierge.n[OPB][sid].dec.Decode(&receivedMessage); err == nil {
 			//mをlog.infofで出力する
 			// log.Infof("receive OB Reply message")
-			go asyncHandleOBReply(&m, sid)
+			m, ok := receivedMessage.Message.(ValidatorOPAReply)
+			if !ok {
+				log.Errorf("Failed to cast message to ValidatorOPAReply | received type: %T", receivedMessage.Message)
+				continue
+			}
+
+			go asyncHandleOBReply(&m, ServerId(receivedMessage.Sender))
 		} else if err == io.EOF {
 			log.Errorf("%s | server %v closed connection | err: %v", cmdPhase[OPB], sid, err)
 			break
@@ -298,9 +344,9 @@ func handleProposerCPAConns(sConn *net.TCPConn, sid ServerId) {
 	receiveCounter := int64(0)
 
 	for {
-		var m ValidatorCPAReply
+		var receivedMessage BetweenProposerMsg
 
-		err := concierge.n[CPA][sid].dec.Decode(&m)
+		err := concierge.n[CPA][sid].dec.Decode(&receivedMessage)
 
 		counter := atomic.AddInt64(&receiveCounter, 1)
 
@@ -314,8 +360,13 @@ func handleProposerCPAConns(sConn *net.TCPConn, sid ServerId) {
 			continue
 		}
 
-		if &m != nil {
-			go asyncHandleCPAReply(&m, sid)
+		if &receivedMessage != nil {
+			m, ok := receivedMessage.Message.(ValidatorCPAReply)
+			if !ok {
+				log.Errorf("Failed to cast message to ValidatorCPAReply | received type: %T", receivedMessage.Message)
+				continue
+			}
+			go asyncHandleCPAReply(&m, ServerId(receivedMessage.Sender))
 		} else {
 			log.Errorf("received message is nil")
 		}
@@ -325,4 +376,64 @@ func handleProposerCPAConns(sConn *net.TCPConn, sid ServerId) {
 func handleProposerCPBConns(sConn *net.TCPConn, sid ServerId) {
 	//
 	//
+}
+
+func relayBetweenProposerMessage(coordinatorId ServerId, phase int) {
+	dialogMgr.RLock()
+	postPhaseDialogInfo := dialogMgr.conns[phase][coordinatorId]
+	dialogMgr.RUnlock()
+
+	for {
+		var receivedMessage BetweenProposerMsg
+
+		receiveMsgErr := postPhaseDialogInfo.dec.Decode(&receivedMessage)
+
+		if receiveMsgErr == io.EOF {
+			nowTime := time.Now().UnixMilli()
+			log.Errorf("%v | coordinator closed connection | err: %v, time=%d", rpyPhase[phase], receiveMsgErr, nowTime)
+			log.Warnf("Lost connection with the proposer (S%v); quitting program", postPhaseDialogInfo.SID)
+			vgInst.Done()
+			break
+		}
+
+		if receiveMsgErr != nil {
+			log.Errorf("Gob Decode Err: %v", receiveMsgErr)
+			continue
+		}
+
+		var recipient = receivedMessage.Recipient
+		needDetour, detourNextNode := checkComPathToValidator(recipient)
+		var nextNode int
+		var sendMessage any
+
+		if needDetour {
+			nextNode = detourNextNode
+			sendMessage = receivedMessage
+		} else {
+			nextNode = recipient
+			sendMessage = receivedMessage.Message
+		}
+
+		if nextNode == -1 {
+			log.Infof("server %v cannot communicate with any proposer", recipient)
+			continue
+		}
+
+		if concierge.n[phase][nextNode] == nil {
+			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", nextNode, phase, sendMessage)
+			continue
+		}
+
+		sendMsgErr := concierge.n[phase][nextNode].enc.Encode(sendMessage)
+		if sendMsgErr != nil {
+			broadcastError = true
+			switch sendMsgErr {
+			case io.EOF:
+				log.Errorf("server %v closed connection |needDetour: %t| err: %v", concierge.n[phase][nextNode].SID, needDetour, sendMsgErr)
+				break
+			default:
+				log.Errorf("sent to server %v failed |needDetour: %t| err: %v", concierge.n[phase][nextNode].SID, needDetour, sendMsgErr)
+			}
+		}
+	}
 }

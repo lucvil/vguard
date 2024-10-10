@@ -30,6 +30,17 @@ func initConns(numOfServers int) {
 	}
 }
 
+func initGob() {
+	gob.Register(BetweenProposerMsg{})
+	gob.Register(ProposerOPAEntry{})
+	gob.Register(ValidatorOPAReply{})
+	gob.Register(ProposerOPBEntry{})
+	gob.Register(ProposerCPAEntry{})
+	gob.Register(ValidatorCPAReply{})
+	gob.Register(ProposerCPBEntry{})
+	gob.Register(ValidatorCPBReply{})
+}
+
 var dialogMgr = struct {
 	sync.RWMutex
 	conns []map[ServerId]ConnDock

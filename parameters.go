@@ -85,6 +85,7 @@ var proposerLookup = struct {
 	m map[Phase][]ServerId
 }{m: make(map[Phase][]ServerId)}
 
+// blockchainIdとproposerとなるserverIdとの対応関係
 var blockchainInfo = struct {
 	sync.RWMutex
 	m map[int]map[Phase]ServerId
@@ -121,7 +122,7 @@ var (
 	}
 
 	// whether consider communication possiblity between proposer and validator
-	EvaluateCommPossibilityFlag bool
+	EvaluateComPossibilityFlag bool
 
 	// ArterySimulationDelay float64
 
@@ -172,7 +173,7 @@ func loadCmdParameters() {
 	//flag.IntVar(&SleepTimeInSlowMode, "smt", 1, "slow mode cycle sleep time (second)")
 
 	// for multiple proposer
-	flag.BoolVar(&EvaluateCommPossibilityFlag, "ecf", false, "whether consider communication possiblity between proposer and validator")
+	flag.BoolVar(&EvaluateComPossibilityFlag, "ecf", true, "whether consider communication possiblity between proposer and validator")
 	// Add the proposer list flag
 	var proposerIds string
 	flag.StringVar(&proposerIds, "pl", "", "comma-separated list of proposer IDs")

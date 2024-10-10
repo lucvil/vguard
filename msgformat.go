@@ -77,8 +77,8 @@ type ValidatorCPBReply struct {
 }
 
 type BetweenProposerMsg struct {
-	message   any
-	sender    int
-	recipient int
-	phase     int
+	Message   any
+	Sender    int
+	Recipient int
+	Phase     int
 }
