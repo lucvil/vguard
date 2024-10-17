@@ -36,7 +36,7 @@ func runAsProposer(proposerId ServerId) {
 
 	wg.Wait()
 
-	wg.Add(NOP)
+	wg.Add(NOP + 1)
 
 	for i := 0; i < NOP; i++ {
 		//validator接続の受け入れ
