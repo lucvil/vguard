@@ -231,6 +231,7 @@ func getNowTimeKey() string {
 	pastTime := float64(nowTime) - float64(simulationStartTime)
 	pastTime = pastTime/1000 + ArterySimulationDelay
 	pastTime = RoundToDecimal(pastTime, 3)
+	log.Infof("nowTime: %f, simulationStartTime:%f", float64(nowTime), float64(simulationStartTime))
 
 	key := fmt.Sprintf("%.2f", pastTime)
 
@@ -396,6 +397,34 @@ func checkComPathToValidator(validatorId int) (bool, int) {
 		return needDetour, detourNextNode
 	} else {
 		communicableProposerList := valToProComTimeMap.timeMap[ServerId(validatorId)][timeKey]
+		needDetour = true
+		if len(communicableProposerList) == 0 {
+			detourNextNode = -1
+		} else {
+			detourNextNode = int(communicableProposerList[0])
+		}
+		return needDetour, detourNextNode
+	}
+}
+
+func checkComPathToProposer(proposerId int) (bool, int) {
+	var needDetour bool
+	var detourNextNode int
+	timeKey := getNowTimeKey()
+	var communicableProposerList []ServerId
+	valToProComTimeMap.RLock()
+	if timeMap, ok := valToProComTimeMap.timeMap[ServerId(ServerID)]; ok {
+		communicableProposerList = timeMap[timeKey]
+		log.Infof("aa%v, %s", timeMap["200.00"], timeKey)
+	}
+	valToProComTimeMap.RUnlock()
+	// log.Infof("aa%v", communicableProposerList[0])
+	// fmt.Printf((communicableProposerList[0]))
+	if slices.Contains(communicableProposerList, ServerId(proposerId)) {
+		needDetour = false
+		detourNextNode = proposerId
+		return needDetour, detourNextNode
+	} else {
 		needDetour = true
 		if len(communicableProposerList) == 0 {
 			detourNextNode = -1

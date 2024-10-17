@@ -96,10 +96,14 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 
 	// log.Infof("serverID: %d,end validating OAEntry blockID: %d", ServerID, m.BlockId)
 
-	log.Infof("finish validate")
-
-	//返信を送信します(OPB)
-	dialSendBack(postReply, encoder, OPA)
+	if EvaluateComPossibilityFlag {
+		blockchainInfo.RLock()
+		var recipientProposerId = blockchainInfo.m[postReply.BlockchainId][OPA]
+		blockchainInfo.RUnlock()
+		dialSendBackWithComCheck(postReply, encoder, OPA, recipientProposerId)
+	} else {
+		dialSendBack(postReply, encoder, OPA)
+	}
 }
 
 func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
@@ -274,7 +278,14 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 		s <- 1
 	}
 
-	dialSendBack(replyCA, encoder, CPA)
+	if EvaluateComPossibilityFlag {
+		blockchainInfo.RLock()
+		var recipientProposerId = blockchainInfo.m[replyCA.BlockchainId][CPA]
+		blockchainInfo.RUnlock()
+		dialSendBackWithComCheck(replyCA, encoder, CPA, recipientProposerId)
+	} else {
+		dialSendBack(replyCA, encoder, CPA)
+	}
 
 	// nowTime = time.Now().UnixMilli()
 	// log.Infof("end consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)

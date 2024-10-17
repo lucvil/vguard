@@ -86,6 +86,35 @@ func dialSendBack(m interface{}, encoder *gob.Encoder, phaseNumber int) {
 	}
 }
 
+func dialSendBackWithComCheck(m interface{}, encoder *gob.Encoder, phaseNumber int, recipientProposerId ServerId) {
+
+	needDetour, detourNextNode := checkComPathToProposer(int(recipientProposerId))
+	if needDetour {
+		if detourNextNode == -1 {
+			log.Infof("server %v cannot communicate with any proposer", ServerID)
+			return
+		}
+
+		detourEncoder := dialogMgr.conns[CPA][ServerId(detourNextNode)].enc
+
+		if detourEncoder == nil {
+			log.Errorf("%s | encoder is nil", rpyPhase[phaseNumber])
+		}
+		if err := detourEncoder.Encode(m); err != nil {
+			log.Errorf("%s | send back failed | err: %v", rpyPhase[phaseNumber], err)
+		}
+
+	} else {
+		if encoder == nil {
+			log.Errorf("%s | encoder is nil", rpyPhase[phaseNumber])
+		}
+		if err := encoder.Encode(m); err != nil {
+			log.Errorf("%s | send back failed | err: %v", rpyPhase[phaseNumber], err)
+		}
+	}
+
+}
+
 // proposer or validator
 // func takingInitRoles(proposer ServerId) {
 func takingInitRoles() {
