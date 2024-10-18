@@ -228,10 +228,12 @@ func RoundToDecimal(value float64, places int) float64 {
 
 func getNowTimeKey() string {
 	nowTime := time.Now().UnixMilli()
-	pastTime := float64(nowTime) - float64(simulationStartTime)
+	simulationStartTime.RLock()
+	defer simulationStartTime.RUnlock()
+	pastTime := float64(nowTime) - float64(simulationStartTime.time)
 	pastTime = pastTime/1000 + ArterySimulationDelay
 	pastTime = RoundToDecimal(pastTime, 3)
-	log.Infof("nowTime: %f, simulationStartTime:%f", float64(nowTime), float64(simulationStartTime))
+	log.Infof("nowTime: %f, simulationStartTime:%f", float64(nowTime), float64(simulationStartTime.time))
 
 	key := fmt.Sprintf("%.2f", pastTime)
 
@@ -240,10 +242,6 @@ func getNowTimeKey() string {
 
 func getBoothID() int {
 	var pattern []int
-	nowTime := time.Now().UnixMilli()
-	pastTime := float64(nowTime) - float64(simulationStartTime)
-	pastTime = pastTime/1000 + ArterySimulationDelay
-	pastTime = RoundToDecimal(pastTime, 3)
 
 	key := getNowTimeKey()
 	pattern = vehicleTimeData[key][ServerId(ServerID)]
@@ -415,7 +413,6 @@ func checkComPathToProposer(proposerId int) (bool, int) {
 	valToProComTimeMap.RLock()
 	if timeMap, ok := valToProComTimeMap.timeMap[ServerId(ServerID)]; ok {
 		communicableProposerList = timeMap[timeKey]
-		log.Infof("aa%v, %s", timeMap["200.00"], timeKey)
 	}
 	valToProComTimeMap.RUnlock()
 	// log.Infof("aa%v", communicableProposerList[0])

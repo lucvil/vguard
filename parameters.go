@@ -176,7 +176,7 @@ func loadCmdParameters() {
 	//flag.IntVar(&SleepTimeInSlowMode, "smt", 1, "slow mode cycle sleep time (second)")
 
 	// for multiple proposer
-	flag.BoolVar(&EvaluateComPossibilityFlag, "ecf", false, "whether consider communication possiblity between proposer and validator")
+	flag.BoolVar(&EvaluateComPossibilityFlag, "ecf", true, "whether consider communication possiblity between proposer and validator")
 	// Add the proposer list flag
 	var proposerIds string
 	flag.StringVar(&proposerIds, "pl", "", "comma-separated list of proposer IDs")

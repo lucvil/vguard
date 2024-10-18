@@ -25,11 +25,12 @@ func runAsValidator() {
 
 	log.Debugf("... registerDialConn completed ...")
 
-	for _, coordinatorId := range proposerLookup.m[OPA] {
-		go receivingOADialMessages(proposerLookup.m[OPA][coordinatorId])
-		go receivingOBDialMessages(proposerLookup.m[OPB][coordinatorId])
-		go receivingCADialMessages(proposerLookup.m[CPA][coordinatorId])
-		go receivingCBDialMessages(proposerLookup.m[CPB][coordinatorId])
+	for index, _ := range proposerLookup.m[OPA] {
+		go receivingOADialMessages(proposerLookup.m[OPA][index])
+		go receivingOBDialMessages(proposerLookup.m[OPB][index])
+		go receivingCADialMessages(proposerLookup.m[CPA][index])
+		go receivingCBDialMessages(proposerLookup.m[CPB][index])
+		go receivingTIMEDialMessages(proposerLookup.m[TIME][index])
 	}
 }
 
@@ -235,4 +236,36 @@ func receivingCBDialMessages(coordinatorId ServerId) {
 
 		go validatingCBEntry(&m, CBDialogInfo.enc)
 	}
+}
+
+func receivingTIMEDialMessages(coordinatorId ServerId) {
+	dialogMgr.RLock()
+	TIMEDialogInfo := dialogMgr.conns[TIME][coordinatorId]
+	dialogMgr.RUnlock()
+
+	for {
+		var m simulationStartTimeSyncMessage
+
+		err := TIMEDialogInfo.dec.Decode(&m)
+
+		if err == io.EOF {
+			log.Errorf("%v: Coordinator closed connection | err: %v", rpyPhase[TIME], err)
+			break
+		}
+
+		if err != nil {
+			log.Errorf("%v: Gob Decode Err: %v", rpyPhase[TIME], err)
+			continue
+		}
+
+		go syncSimulationStartTIme(&m)
+	}
+}
+
+func syncSimulationStartTIme(m *simulationStartTimeSyncMessage) {
+	simulationStartTime.Lock()
+	if simulationStartTime.time < m.Time {
+		simulationStartTime.time = m.Time
+	}
+	simulationStartTime.Unlock()
 }

@@ -45,6 +45,10 @@ func runAsProposer(proposerId ServerId) {
 
 	time.Sleep(10 * time.Second) // 10秒待機
 
+	simulationStartTime.Lock()
+	simulationStartTime.time = time.Now().UnixMilli()
+	simulationStartTime.Unlock()
+
 	proposerLookup.RLock()
 	defer proposerLookup.RUnlock()
 
@@ -61,15 +65,16 @@ func runAsProposer(proposerId ServerId) {
 
 	}
 
-	for _, coordinatorId := range proposerLookup.m[OPA] {
+	for index, coordinatorId := range proposerLookup.m[OPA] {
 		if coordinatorId == ServerId(ServerID) {
 			continue
 		}
 
-		go relayBetweenProposerMessage(proposerLookup.m[OPA][coordinatorId], OPA)
-		go relayBetweenProposerMessage(proposerLookup.m[OPB][coordinatorId], OPB)
-		go relayBetweenProposerMessage(proposerLookup.m[CPA][coordinatorId], CPA)
-		go relayBetweenProposerMessage(proposerLookup.m[CPB][coordinatorId], CPB)
+		go relayBetweenProposerMessage(proposerLookup.m[OPA][index], OPA)
+		go relayBetweenProposerMessage(proposerLookup.m[OPB][index], OPB)
+		go relayBetweenProposerMessage(proposerLookup.m[CPA][index], CPA)
+		go relayBetweenProposerMessage(proposerLookup.m[CPB][index], CPB)
+		go receivingTIMEDialMessages(proposerLookup.m[TIME][index])
 	}
 
 	//すべてのバリデーターが揃うまで待機
@@ -78,7 +83,7 @@ func runAsProposer(proposerId ServerId) {
 
 	// if ServerID != 1 {
 	// 	//以降の処理を停止
-	// 	fmt.Printf("aaaa")
+	// 	fmt.Printf("aa")
 	// 	time.Sleep(1000)
 	// 	return
 	// }
@@ -96,7 +101,8 @@ func runAsProposer(proposerId ServerId) {
 	txGenerator(MsgSize)
 
 	//NumOfValidators, "w", 1, "number of worker threads"
-	simulationStartTime = time.Now().UnixMilli()
+	time.Sleep(10 * time.Second) // 10秒待機
+	log.Infof("simulationStartTIme: %d", simulationStartTime.time)
 
 	for i := 0; i < NumOfValidators; i++ {
 		go startOrderingPhaseA(i)
@@ -159,6 +165,8 @@ func acceptValidatorConns(leaderId ServerId, wg *sync.WaitGroup, phase int) {
 			go handleCPAConns(conn, sid)
 		case CPB:
 			go handleCPBConns(conn, sid)
+		case TIME:
+
 		}
 
 		connected++
@@ -299,6 +307,8 @@ func acceptProposerConns(leaderId ServerId, wg *sync.WaitGroup, phase int) {
 			go handleProposerCPAConns(conn, sid)
 		case CPB:
 			go handleProposerCPBConns(conn, sid)
+		case TIME:
+			go handleProposerTIMEConns()
 		}
 
 		connected++
@@ -378,6 +388,17 @@ func handleProposerCPAConns(sConn *net.TCPConn, sid ServerId) {
 func handleProposerCPBConns(sConn *net.TCPConn, sid ServerId) {
 	//
 	//
+}
+
+func handleProposerTIMEConns() {
+	simulationStartTime.RLock()
+	defer simulationStartTime.RUnlock()
+	sendMessage := simulationStartTimeSyncMessage{
+		Time:       simulationStartTime.time,
+		ProposerId: ServerID,
+	}
+
+	broadcastToAll(sendMessage, TIME)
 }
 
 func relayBetweenProposerMessage(coordinatorId ServerId, phase int) {

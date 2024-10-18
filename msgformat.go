@@ -15,6 +15,11 @@ type Entry struct {
 	Tx        []byte
 }
 
+type simulationStartTimeSyncMessage struct {
+	Time       int64
+	ProposerId int
+}
+
 type ProposerOPAEntry struct {
 	Booth
 	BlockId      int64
