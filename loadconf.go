@@ -60,26 +60,31 @@ func parseConf(numOfServers int) {
 				singleSL.Ports = make(map[int]string)
 			}
 
-			singleSL.Ports[ListenerPortOPA+j*8] = row[3]
-			singleSL.Ports[ListenerPortOPB+j*8] = row[4]
-			singleSL.Ports[ListenerPortOCA+j*8] = row[5]
-			singleSL.Ports[ListenerPortOCB+j*8] = row[6]
-			singleSL.Ports[DialPortOPA+j*8] = row[7]
-			singleSL.Ports[DialPortOPB+j*8] = row[8]
-			singleSL.Ports[DialPortCPA+j*8] = row[9]
-			singleSL.Ports[DialPortCPB+j*8] = row[10]
+			singleSL.Ports[ListenerPortOPA+j*NOP*2] = row[3]
+			singleSL.Ports[ListenerPortOPB+j*NOP*2] = row[4]
+			singleSL.Ports[ListenerPortOCA+j*NOP*2] = row[5]
+			singleSL.Ports[ListenerPortOCB+j*NOP*2] = row[6]
+			singleSL.Ports[ListenerPortTIME+j*NOP*2] = row[7]
+
+			singleSL.Ports[DialPortOPA+j*NOP*2] = row[8]
+			singleSL.Ports[DialPortOPB+j*NOP*2] = row[9]
+			singleSL.Ports[DialPortCPA+j*NOP*2] = row[10]
+			singleSL.Ports[DialPortCPB+j*NOP*2] = row[11]
+			singleSL.Ports[DialPortTIME+j*NOP*2] = row[12]
 
 			serverIdLookup.Lock()
-			serverIdLookup.m[singleSL.Ip+":"+row[7]] = singleSL.Index
 			serverIdLookup.m[singleSL.Ip+":"+row[8]] = singleSL.Index
 			serverIdLookup.m[singleSL.Ip+":"+row[9]] = singleSL.Index
 			serverIdLookup.m[singleSL.Ip+":"+row[10]] = singleSL.Index
+			serverIdLookup.m[singleSL.Ip+":"+row[11]] = singleSL.Index
+			serverIdLookup.m[singleSL.Ip+":"+row[12]] = singleSL.Index
 			serverIdLookup.Unlock()
 
 			if j == len(ProposerList)-1 {
 				ServerList = append(ServerList, singleSL)
 				log.Debugf("Config file fetched | S%d -> %v:%v \n", singleSL.Index, singleSL.Ip, singleSL.Ports)
 			}
+
 		}
 	}
 }

@@ -20,6 +20,7 @@ func runAsValidator() {
 		registerDialConn(coordinatorId, OPB, ListenerPortOPB)
 		registerDialConn(coordinatorId, CPA, ListenerPortOCA)
 		registerDialConn(coordinatorId, CPB, ListenerPortOCB)
+		registerDialConn(coordinatorId, TIME, ListenerPortTIME)
 	}
 
 	log.Debugf("... registerDialConn completed ...")
@@ -93,13 +94,15 @@ func establishDialConn(coordinatorId ServerId, coordListenerAddr string, phase i
 
 	switch phase {
 	case OPA:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPA+coordinatorIndex*8]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPA+coordinatorIndex*NOP*2]
 	case OPB:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPB+coordinatorIndex*8]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPB+coordinatorIndex*NOP*2]
 	case CPA:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPA+coordinatorIndex*8]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPA+coordinatorIndex*NOP*2]
 	case CPB:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPB+coordinatorIndex*8]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPB+coordinatorIndex*NOP*2]
+	case TIME:
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortTIME+coordinatorIndex*NOP*2]
 	default:
 		panic(errors.New("wrong phase name"))
 	}

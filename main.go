@@ -33,10 +33,12 @@ SOFTWARE.
 var log = logrus.New()
 var metre latencyMetre
 var vgInst sync.WaitGroup
-var simulationStartTime = struct {
-	sync.RWMutex
-	time int64
-}{}
+
+//	var simulationStartTime = struct {
+//		sync.RWMutex
+//		time int64
+//	}{}
+var simulationStartTime int64
 var vehicleTimeData map[string]map[ServerId][]int
 
 func init() {

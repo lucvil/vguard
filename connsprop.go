@@ -36,7 +36,7 @@ func runAsProposer(proposerId ServerId) {
 
 	wg.Wait()
 
-	wg.Add(NOP + 1)
+	wg.Add(NOP)
 
 	for i := 0; i < NOP; i++ {
 		//validator接続の受け入れ
@@ -57,6 +57,8 @@ func runAsProposer(proposerId ServerId) {
 		registerDialConn(coordinatorId, OPB, ListenerPortOPB)
 		registerDialConn(coordinatorId, CPA, ListenerPortOCA)
 		registerDialConn(coordinatorId, CPB, ListenerPortOCB)
+		registerDialConn(coordinatorId, TIME, ListenerPortTIME)
+
 	}
 
 	for _, coordinatorId := range proposerLookup.m[OPA] {

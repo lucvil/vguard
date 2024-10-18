@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-const NOP = 4 // Number of phases
+const NOP = 5 // Number of phases 4+1(TIME)
 
 const MaxQueue = 10_000_000
 
@@ -19,6 +19,7 @@ const (
 	OPB
 	CPA
 	CPB
+	TIME
 )
 
 const (
@@ -26,10 +27,12 @@ const (
 	ListenerPortOPB
 	ListenerPortOCA
 	ListenerPortOCB
+	ListenerPortTIME
 	DialPortOPA
 	DialPortOPB
 	DialPortCPA
 	DialPortCPB
+	DialPortTIME
 )
 
 // Below are three booth modes for testing the performance of VG in dynamic membership
@@ -48,8 +51,8 @@ const (
 
 var boothFromMode [3]int
 
-var cmdPhase = []string{"OPA", "OPB", "CPA", "CPB"}
-var rpyPhase = []string{"R-OPA", "R-OPB", "R-CPA", "R-CPB"}
+var cmdPhase = []string{"OPA", "OPB", "CPA", "CPB", "TIME"}
+var rpyPhase = []string{"R-OPA", "R-OPB", "R-CPA", "R-CPB", "TIME"}
 
 type ServerId int
 type Phase int
@@ -173,7 +176,7 @@ func loadCmdParameters() {
 	//flag.IntVar(&SleepTimeInSlowMode, "smt", 1, "slow mode cycle sleep time (second)")
 
 	// for multiple proposer
-	flag.BoolVar(&EvaluateComPossibilityFlag, "ecf", true, "whether consider communication possiblity between proposer and validator")
+	flag.BoolVar(&EvaluateComPossibilityFlag, "ecf", false, "whether consider communication possiblity between proposer and validator")
 	// Add the proposer list flag
 	var proposerIds string
 	flag.StringVar(&proposerIds, "pl", "", "comma-separated list of proposer IDs")
