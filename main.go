@@ -40,7 +40,8 @@ var simulationStartTime = struct {
 }{}
 
 // var simulationStartTime int64
-var vehicleTimeData map[string]map[ServerId][]int
+// var participantVehicleTimeData map[string]map[ServerId][]int
+var participantVehicleTimeData map[string][]int
 
 func init() {
 	//初期パラメータを設定

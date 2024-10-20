@@ -66,7 +66,8 @@ var booMgr = struct {
 
 func fetchArteryData() {
 	// arteryFilePath := "../artery/scenarios/vguard-test/results/speed" + strconv.Itoa(VehicleSpeed) + "/300vehicle/extended_time_id.json"
-	arteryFilePath := "./artery-data/data.json"
+	// arteryFilePath := "./artery-data/data.json"
+	arteryFilePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(ServerID) + "/immu_participant_node_" + strconv.Itoa(ServerID) + ".json"
 
 	// JSONファイルを読み込む
 	file, err := os.Open(arteryFilePath)
@@ -84,7 +85,7 @@ func fetchArteryData() {
 	}
 
 	// JSONデコード
-	if err := json.Unmarshal(byteValue, &vehicleTimeData); err != nil {
+	if err := json.Unmarshal(byteValue, &participantVehicleTimeData); err != nil {
 		fmt.Printf("Error unmarshalling JSON: %s\n", err)
 		return
 	}
@@ -244,7 +245,7 @@ func getBoothID() int {
 	var pattern []int
 
 	key := getNowTimeKey()
-	pattern = vehicleTimeData[key][ServerId(ServerID)]
+	pattern = participantVehicleTimeData[key]
 	//logにpatternとpastTimeを記述
 	// log.Infof("pattern:%v, pastTime: %f", pattern, key)
 
