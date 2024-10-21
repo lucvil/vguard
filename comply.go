@@ -117,10 +117,16 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 	//ブロックのハッシュと組み合わせ署名を検証します。
 	threshold := getThreshold(len(m.Booth.Indices))
 	publicPolyVOB, _ := fetchKeysByBoothId(threshold, ServerID, m.Booth.ID, m.BlockchainId)
+	// if fetchErr != nil {
+	// 	log.Errorf("Failed to fetch keys for verification: %v, ServerID :%d, m.Booth.ID: %d, m.BlockchainId: %d", fetchErr, ServerID, m.Booth.ID, m.BlockchainId)
+	// 	return
+	// }
+
 	err := PenVerify(m.Hash, m.CombSig, publicPolyVOB)
 	if err != nil {
 		log.Errorf("%v: PenVerify failed | err: %v | BlockID: %v | m.Hash: %v| CombSig: %v",
 			rpyPhase[OPB], err, m.BlockId, hex.EncodeToString(m.Hash), hex.EncodeToString(m.CombSig))
+
 		return
 	}
 

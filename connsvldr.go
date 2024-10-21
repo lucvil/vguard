@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"reflect"
 	"time"
 )
 
@@ -180,13 +181,73 @@ func receivingOBDialMessages(coordinatorId ServerId) {
 			break
 		}
 
+		// if err != nil {
+		// 	log.Errorf("%s | gob Decode Err: %v, ServerId: %d", rpyPhase[OPB], err, int(coordinatorId))
+		// 	log.Errorf("The type of the message is:", reflect.TypeOf())
+		// 	continue
+		// }
+
 		if err != nil {
-			log.Errorf("%s | gob Decode Err: %v", rpyPhase[OPB], err)
+			log.Errorf("%s | gob Decode Err: %v, ServerId: %d", rpyPhase[OPB], err, int(coordinatorId))
+
+			// interface{} にデコードして型を確認する
+			var unknownMessage interface{}
+			err = orderPhaseDialogInfo.dec.Decode(&unknownMessage)
+			if err == nil {
+				// 型を調べてログに出力
+				log.Infof("Received a message of type: %v", reflect.TypeOf(unknownMessage))
+			} else {
+				// デコードに失敗した場合もログに出力
+				log.Errorf("Failed to decode message for type detection: %v", err)
+			}
 			continue
 		}
 
 		go validatingOBEntry(&m, commitPhaseDialogInfo.enc)
 	}
+
+	// for {
+	// 	// データをバッファリングするためのバッファ
+	// 	var buf bytes.Buffer
+
+	// 	// 一時的に 1024 バイトを読み込む（適宜サイズを調整）
+	// 	_, err := io.CopyN(&buf, orderPhaseDialogInfo.conn, 1024)
+	// 	if err != nil && err != io.EOF {
+	// 		log.Errorf("Failed to read message data: %v", err)
+	// 		continue
+	// 	}
+
+	// 	// バッファからgobデコードを試みる
+	// 	dec := gob.NewDecoder(&buf)
+	// 	var m ProposerOPBEntry
+	// 	err = dec.Decode(&m)
+
+	// 	if err == io.EOF {
+	// 		nowTime := time.Now().UnixMilli()
+	// 		log.Errorf("%s | coordinator closed connection | err: %v, time=%d", rpyPhase[OPB], err, nowTime)
+	// 		break
+	// 	}
+
+	// 	// エラーが発生したら型を確認
+	// 	if err != nil {
+	// 		log.Errorf("%s | gob Decode Err: %v, ServerId: %d", rpyPhase[OPB], err, int(coordinatorId))
+
+	// 		// バッファを再利用して型を確認する
+	// 		var unknownMessage interface{}
+	// 		dec = gob.NewDecoder(&buf) // 同じバッファを使ってもう一度デコード
+	// 		err = dec.Decode(&unknownMessage)
+	// 		if err == nil {
+	// 			// 型を調べてログに出力
+	// 			log.Infof("Received a message of type: %v", reflect.TypeOf(unknownMessage))
+	// 		} else {
+	// 			log.Errorf("Failed to decode message for type detection: %v", err)
+	// 		}
+	// 		continue
+	// 	}
+
+	// 	// 正常にデコードできた場合の処理
+	// 	go validatingOBEntry(&m, commitPhaseDialogInfo.enc)
+	// }
 }
 
 func receivingCADialMessages(coordinatorId ServerId) {

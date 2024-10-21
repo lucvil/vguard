@@ -198,6 +198,11 @@ func PenVerifyPartially(msg, sig []byte, pub *share.PubPoly) error {
 func PenRecovery(sigShares [][]byte, msg *[]byte, pub *share.PubPoly, boothSize int) ([]byte, error) {
 	threshold := getThreshold(boothSize)
 	sig, err := tbls.Recover(suite, pub, *msg, sigShares, threshold, boothSize)
+	if err != nil {
+		// 詳細なエラーログを追加
+		log.Errorf("PenRecovery failed: %v | suite: %+v | threshold: %d | boothSize: %d", err, suite, threshold, boothSize)
+		return nil, err
+	}
 	return sig, err
 }
 

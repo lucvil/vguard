@@ -66,7 +66,7 @@ var booMgr = struct {
 
 func fetchArteryData() {
 	// arteryFilePath := "../artery/scenarios/vguard-test/results/speed" + strconv.Itoa(VehicleSpeed) + "/300vehicle/extended_time_id.json"
-	// arteryFilePath := "./artery-data/data.json"
+	// arteryFilePath := "./artery-data/output_" + strconv.Itoa(ServerID) + ".json"
 	arteryFilePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(ServerID) + "/immu_participant_node_" + strconv.Itoa(ServerID) + ".json"
 
 	// JSONファイルを読み込む
@@ -98,7 +98,8 @@ func getThreshold(boothSize int) int {
 
 func fetchProToValComTimeMap(proposerList []ServerId) {
 	for _, proposerId := range proposerList {
-		filePath := "./artery-data/communication-data-" + strconv.Itoa(int(proposerId)) + ".json"
+		// filePath := "./artery-data/communication-data-" + strconv.Itoa(int(proposerId)) + ".json"
+		filePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
 
 		// JSONファイルを読み込む
 		file, err := os.Open(filePath)
@@ -127,14 +128,19 @@ func fetchProToValComTimeMap(proposerList []ServerId) {
 		if _, ok := proToValComTimeMap.timeMap[proposerId]; !ok {
 			proToValComTimeMap.timeMap[proposerId] = make(map[string][]ServerId)
 		}
-		proToValComTimeMap.timeMap[proposerId] = proToValTimeMapItem
+		// コピーを作成して代入する
+		for key, value := range proToValTimeMapItem {
+			copiedValue := append([]ServerId{}, value...) // スライスのコピーを作成
+			proToValComTimeMap.timeMap[proposerId][key] = copiedValue
+		}
 		proToValComTimeMap.Unlock()
 	}
 }
 
 func fetchValToProComTimeMap(validatorList []ServerId) {
 	for _, validatorId := range validatorList {
-		filePath := "./artery-data/communication-data-" + strconv.Itoa(int(validatorId)) + ".json"
+		// filePath := "./artery-data/communication-data-" + strconv.Itoa(int(validatorId)) + ".json"
+		filePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"
 
 		// JSONファイルを読み込む
 		file, err := os.Open(filePath)
@@ -163,7 +169,12 @@ func fetchValToProComTimeMap(validatorList []ServerId) {
 		if _, ok := valToProComTimeMap.timeMap[validatorId]; !ok {
 			valToProComTimeMap.timeMap[validatorId] = make(map[string][]ServerId)
 		}
-		valToProComTimeMap.timeMap[validatorId] = valToProTimeMapItem
+		// コピーを作成して代入する
+		for key, value := range valToProTimeMapItem {
+			// スライスのコピーを作成
+			copiedValue := append([]ServerId{}, value...)
+			valToProComTimeMap.timeMap[validatorId][key] = copiedValue
+		}
 		valToProComTimeMap.Unlock()
 	}
 }
@@ -234,7 +245,6 @@ func getNowTimeKey() string {
 	pastTime := float64(nowTime) - float64(simulationStartTime.time)
 	pastTime = pastTime/1000 + ArterySimulationDelay
 	pastTime = RoundToDecimal(pastTime, 3)
-	log.Infof("nowTime: %f, simulationStartTime:%f", float64(nowTime), float64(simulationStartTime.time))
 
 	key := fmt.Sprintf("%.2f", pastTime)
 
@@ -314,7 +324,7 @@ func broadcastToBooth(e interface{}, phase int, boothID int) {
 		}
 
 		if concierge.n[phase][i] == nil {
-			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", i, phase, e)
+			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:b", i, phase, e)
 			continue
 		}
 
@@ -353,7 +363,7 @@ func broadcastToNewBooth(regularMsg interface{}, phase int, boothID int, newMemb
 		}
 
 		if concierge.n[phase][i] == nil {
-			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", i, phase, regularMsg)
+			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:c", i, phase, regularMsg)
 			continue
 		}
 
@@ -399,9 +409,12 @@ func checkComPathToValidator(validatorId int) (bool, int) {
 		needDetour = true
 		if len(communicableProposerList) == 0 {
 			detourNextNode = -1
+			// log.Infof("communicableProposerList: %v, validatorId: %d detourNextNode: %d,timeKey: %s", communicableProposerList, validatorId, detourNextNode, timeKey)
 		} else {
 			detourNextNode = int(communicableProposerList[0])
+			// log.Infof("communicableProposerList: %v, validatorId: %d detourNextNode: %d,timeKey: %s", communicableProposerList, validatorId, detourNextNode, timeKey)
 		}
+
 		return needDetour, detourNextNode
 	}
 }
@@ -457,6 +470,7 @@ func broadcastToBoothWithComCheck(e interface{}, phase int, boothID int) {
 				Recipient: i,
 				Phase:     phase,
 			}
+			// log.Infof("Detour Network, nextNode: %d, recipient: %d", nextNode, i)
 		} else {
 			nextNode = i
 			message = e
@@ -468,7 +482,7 @@ func broadcastToBoothWithComCheck(e interface{}, phase int, boothID int) {
 		}
 
 		if concierge.n[phase][nextNode] == nil {
-			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", nextNode, phase, e)
+			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:d", nextNode, phase, e)
 			continue
 		}
 
@@ -521,7 +535,7 @@ func broadcastToNewBoothWithComCheck(regularMsg interface{}, phase int, boothID 
 		}
 
 		if concierge.n[phase][nextNode] == nil {
-			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", nextNode, phase, regularMsg)
+			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:e", nextNode, phase, regularMsg)
 			continue
 		}
 
@@ -585,7 +599,9 @@ func broadcastToAll(e interface{}, phase int) {
 		}
 
 		if concierge.n[phase][i] == nil {
-			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:", i, phase, e)
+			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:f", i, phase, e)
+			log.Errorf("concierge.n[phase]: %v", concierge.n[phase])
+
 			continue
 		}
 

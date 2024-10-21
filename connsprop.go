@@ -45,13 +45,6 @@ func runAsProposer(proposerId ServerId) {
 
 	time.Sleep(10 * time.Second) // 10秒待機
 
-	simulationStartTime.Lock()
-	simulationStartTime.time = time.Now().UnixMilli()
-	simulationStartTime.Unlock()
-
-	proposerLookup.RLock()
-	defer proposerLookup.RUnlock()
-
 	for _, coordinatorId := range proposerLookup.m[OPA] {
 		if coordinatorId == ServerId(ServerID) {
 			continue
@@ -79,7 +72,20 @@ func runAsProposer(proposerId ServerId) {
 
 	//すべてのバリデーターが揃うまで待機
 	wg.Wait()
-	log.Infof("Network connections are now set | # of phases: %v", NOP)
+
+	//時間同期
+	simulationStartTime.Lock()
+	simulationStartTime.time = time.Now().UnixMilli()
+	simulationStartTime.Unlock()
+
+	proposerLookup.RLock()
+	defer proposerLookup.RUnlock()
+
+	wg.Add(1)
+	go handleProposerTIMEConns(&wg)
+	wg.Wait()
+
+	go log.Infof("Network connections are now set | # of phases: %v", NOP)
 
 	// if ServerID != 1 {
 	// 	//以降の処理を停止
@@ -95,6 +101,7 @@ func runAsProposer(proposerId ServerId) {
 	fetchProToValComTimeMap([]ServerId{ServerId(ServerID)})
 	ValidatorList.Lock()
 	fetchValToProComTimeMap(ValidatorList.list)
+	log.Infof("ValidatorList.list: %v", ValidatorList.list)
 	ValidatorList.Unlock()
 
 	//データを事前に用意、requestQueueに格納
@@ -102,13 +109,14 @@ func runAsProposer(proposerId ServerId) {
 
 	//NumOfValidators, "w", 1, "number of worker threads"
 	time.Sleep(10 * time.Second) // 10秒待機
-	log.Infof("simulationStartTIme: %d", simulationStartTime.time)
 
-	for i := 0; i < NumOfValidators; i++ {
-		go startOrderingPhaseA(i)
+	if ServerID == 1 {
+		for i := 0; i < NumOfValidators; i++ {
+			go startOrderingPhaseA(i)
+		}
+
+		go startConsensusPhaseA()
 	}
-
-	go startConsensusPhaseA()
 }
 
 func closeTCPListener(l *net.TCPListener, phaseNum int) {
@@ -168,6 +176,8 @@ func acceptValidatorConns(leaderId ServerId, wg *sync.WaitGroup, phase int) {
 		case TIME:
 
 		}
+
+		log.Infof("connected :%d, NumOfConn :%d, len(ProposerList) : %d", connected, NumOfConn, len(ProposerList))
 
 		connected++
 		if connected == NumOfConn-len(ProposerList) {
@@ -308,7 +318,7 @@ func acceptProposerConns(leaderId ServerId, wg *sync.WaitGroup, phase int) {
 		case CPB:
 			go handleProposerCPBConns(conn, sid)
 		case TIME:
-			go handleProposerTIMEConns()
+			// go handleProposerTIMEConns()
 		}
 
 		connected++
@@ -390,7 +400,7 @@ func handleProposerCPBConns(sConn *net.TCPConn, sid ServerId) {
 	//
 }
 
-func handleProposerTIMEConns() {
+func handleProposerTIMEConns(wg *sync.WaitGroup) {
 	simulationStartTime.RLock()
 	defer simulationStartTime.RUnlock()
 	sendMessage := simulationStartTimeSyncMessage{
@@ -399,6 +409,8 @@ func handleProposerTIMEConns() {
 	}
 
 	broadcastToAll(sendMessage, TIME)
+
+	wg.Done()
 }
 
 func relayBetweenProposerMessage(coordinatorId ServerId, phase int) {
@@ -432,9 +444,11 @@ func relayBetweenProposerMessage(coordinatorId ServerId, phase int) {
 		if needDetour {
 			nextNode = detourNextNode
 			sendMessage = receivedMessage
+			// log.Infof("sendMessage type: %v, nextNode: %d,NOW_Phase: %d", reflect.TypeOf(sendMessage), nextNode, phase)
 		} else {
 			nextNode = recipient
 			sendMessage = receivedMessage.Message
+			// log.Infof("sendMessage type: %v, nextNode: %d,NOW_Phase: %d", reflect.TypeOf(sendMessage), nextNode, phase)
 		}
 
 		if nextNode == -1 {

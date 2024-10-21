@@ -109,6 +109,7 @@ func startConsensusPhaseA() {
 				})
 				if blockCmtFrag.tSig == nil {
 					log.Errorf("CombSig is nil ! len of Entries: %v", len(blockCmtFrag.entries))
+					log.Errorf("blockCmtFrag: %+v", blockCmtFrag)
 				}
 			}
 
@@ -236,7 +237,9 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	publicPolyPCA, _ := fetchKeysByBoothId(threshold, ServerID, residingBooth.ID, m.BlockchainId)
 	recoveredSig, err := PenRecovery(partialSig, &fetchedTotalHash, publicPolyPCA, boothSize)
 	if err != nil {
-		log.Errorf("%s | PenRecovery failed | len(sigShares): %d | error: %v", cmdPhase[CPA], len(partialSig), err)
+		log.Errorf("partialSig: %v, fetchedTotalHash; %v", partialSig, &fetchedTotalHash)
+
+		log.Errorf("%s | PenRecovery failed | len(sigShares): %d | threshold: %d | publicPolyPCA: %+v | m.BlockchainId: %d | residingBooth.ID: %d | Block.ID: %d |error: %v", cmdPhase[CPA], len(partialSig), threshold, publicPolyPCA, m.BlockchainId, residingBooth.ID, m.ConsInstID, err)
 		return
 	}
 
