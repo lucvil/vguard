@@ -407,7 +407,7 @@ func checkComPathToValidator(validatorId int) (bool, int) {
 	} else {
 		communicableProposerList := valToProComTimeMap.timeMap[ServerId(validatorId)][timeKey]
 		needDetour = true
-		if len(communicableProposerList) == 0 {
+		if !AllowBypassRoute || len(communicableProposerList) == 0 {
 			detourNextNode = -1
 			// log.Infof("communicableProposerList: %v, validatorId: %d detourNextNode: %d,timeKey: %s", communicableProposerList, validatorId, detourNextNode, timeKey)
 		} else {
@@ -437,7 +437,7 @@ func checkComPathToProposer(proposerId int) (bool, int) {
 		return needDetour, detourNextNode
 	} else {
 		needDetour = true
-		if len(communicableProposerList) == 0 {
+		if !AllowBypassRoute || len(communicableProposerList) == 0 {
 			detourNextNode = -1
 		} else {
 			detourNextNode = int(communicableProposerList[0])

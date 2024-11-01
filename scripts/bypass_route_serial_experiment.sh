@@ -1,47 +1,35 @@
 #!/bin/bash
 
-# 子プロセスが終了する際に全ての子プロセスも終了するようにする
-trap "kill 0" EXIT
+PROPOSER_NUM=3
+VALIDATOR_NUM=250
+MESSAGE_SIZE=32
+NETWORK_DELAY=0
+# VEHICLE_SPEED_LIST=(40 60 70 80)
+VEHICLE_SPEED_LIST=(80)
+COM_POSSIBILITY_FLAG=true
+# ALLOW_BYPASS_FLAG_LIST=(true false)
+ALLOW_BYPASS_FLAG_LIST=(false)
 
 # スタックサイズの制限を解除
 ulimit -s unlimited
 
-rm -rf keys
 
-rm -rf logs
-mkdir logs
+# Loop through the specified range of values
+for allow_bypass_flag in "${ALLOW_BYPASS_FLAG_LIST[@]}"
+do
+  for vehicle_speed in "${VEHICLE_SPEED_LIST[@]}"
+  do
+    # # Run the script with the current value as an argument
+    ./scripts/bypass_route_single_experiment.sh $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $vehicle_speed $COM_POSSIBILITY_FLAG $allow_bypass_flag
 
-./scripts/build.sh
+    sleep 60
 
-PROPOSER_NUM=2
-VALIDATOR_NUM=10
-PROPOSER_NUM=3
-VALIDATOR_NUM=250
-PARTICIPANT_NUM=$((PROPOSER_NUM + VALIDATOR_NUM))
-# プロポーザリスト (0,1,2)
-PROPOSER_LIST=$(seq -s, 0 $((PROPOSER_NUM - 1)))
-MESSAGE_SIZE=32
-NETWORK_DELAY=0
-VEHICLE_SPEED=80
-BYPASSFLAG=true
+    python ./data_analysis/bypass_route/fetch_event_bypass.py $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $vehicle_speed $allow_bypass_flag
 
-# バリデータをバックグラウンドで起動し、プロセスIDを格納
-for i in $(seq 0 $((PROPOSER_NUM - 1))); do
-  ./scripts/bypass_route_run.sh $i 0 $PARTICIPANT_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $PROPOSER_LIST $BYPASSFLAG&
-  sleep 0.5
+    # Sleep for 5 seconds
+    sleep 5
+
+    # Print a message to the console
+    echo "Finished vehicle_speed: $vehicle_speed, allow_bypass_flag: $allow_bypass_flag"
+  done
 done
-
-# バリデータをバックグラウンドで起動し、プロセスIDを格納
-for i in $(seq $PROPOSER_NUM $((PARTICIPANT_NUM - 1))); do
-  ./scripts/bypass_route_run.sh $i 1 $PARTICIPANT_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $PROPOSER_LIST $BYPASSFLAG& pid=$!
-  declare "pid$i=$pid"  # プロセスIDを動的変数名で保存
-  sleep 0.1
-done
-
-# 各バリデータの終了を待機
-for i in $(seq $PROPOSER_NUM $((PARTICIPANT_NUM - 1))); do
-  eval "wait \${pid$i}"  # プロセスIDを使って待機
-done
-
-echo "All validators have completed."
-

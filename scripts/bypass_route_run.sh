@@ -19,7 +19,8 @@
 -yc=0 \
 -vs=$6 \
 -pl=$7 \
--ecf=$8
+-ecf=$8 \
+-abr=$9
 
 # To run in cluster, change -cfp to the cluster config file.
 # E.g., -cfp="./config/cluster_4.conf"

@@ -22,8 +22,6 @@ var valiOrdJobStack = struct {
 func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 	log.Debugf("%s | ProposerOPBEntry received (BlockID: %d) @ %v", rpyPhase[OPA], m.BlockId, time.Now().UTC().String())
 
-	log.Infof("start validate")
-
 	// log.Infof("serverID: %d,start validating OAEntry blockID: %d", ServerID, m.BlockId)
 	//受信したブロックIDが既に使用されているかどうかを確認します。
 	//既に使用されていれば、ロックを解除し、警告ログを出力して関数を終了します。
@@ -177,7 +175,7 @@ func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {
 
 	log.Debugf("block %d ordered", m.BlockId)
 
-	log.Infof("end order of BlockId: %d", m.BlockId)
+	log.Infof("end ordering of block %d, Timestamp: %d, BlockchainId: %d", m.BlockId, time.Now().UnixMilli(), m.BlockchainId)
 }
 
 func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
@@ -293,8 +291,8 @@ func validatingCAEntry(m *ProposerCPAEntry, encoder *gob.Encoder) {
 		dialSendBack(replyCA, encoder, CPA)
 	}
 
-	// nowTime = time.Now().UnixMilli()
-	// log.Infof("end consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
+	nowTime := time.Now().UnixMilli()
+	log.Infof("end consensus phase_a_val of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
 
 }
 
@@ -331,6 +329,8 @@ func validatingCBEntry(m *ProposerCPBEntry, encoder *gob.Encoder) {
 		log.Errorf("%v | PenVerify failed; err: %v", rpyPhase[CPB], err)
 		return
 	}
+
+	log.Infof("end consensus of consInstId: %d,Timestamp: %d, BlockchainId: %d", m.ConsInstID, time.Now().UnixMilli(), m.BlockchainId)
 
 	// log
 	// storeVgTx(m.ConsInstID)

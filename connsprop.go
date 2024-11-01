@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"net"
+	"reflect"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -448,7 +449,7 @@ func relayBetweenProposerMessage(coordinatorId ServerId, phase int) {
 		} else {
 			nextNode = recipient
 			sendMessage = receivedMessage.Message
-			// log.Infof("sendMessage type: %v, nextNode: %d,NOW_Phase: %d", reflect.TypeOf(sendMessage), nextNode, phase)
+			log.Infof("sendMessage type: %v, nextNode: %d,NOW_Phase: %d", reflect.TypeOf(sendMessage), nextNode, phase)
 		}
 
 		if nextNode == -1 {

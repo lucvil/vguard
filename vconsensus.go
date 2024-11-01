@@ -46,7 +46,7 @@ func startConsensusPhaseA() {
 		}
 
 		// log.Infof("start consensus of consInstId: %d, blockIDRange: %d,Timestamp: %d", consInstID, blockIDRange, nowTime)
-		log.Infof("start consensus of consInstId: %d,Timestamp: %d, lenBlockRange: %d", consInstID, nowTime, len(blockIDRange))
+		log.Infof("start consensus of consInstId: %d,Timestamp: %d, lenBlockRange: %d, Booth: %v", consInstID, nowTime, len(blockIDRange), commitBooth.Indices)
 
 		blockHashesInRange := make(map[int64][]byte)
 

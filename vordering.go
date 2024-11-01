@@ -108,7 +108,7 @@ func startOrderingPhaseA(i int) {
 
 		//start time
 		nowTime := time.Now().UnixMilli()
-		log.Infof("start ordering of block %d, Timestamp: %d", newBlockId, nowTime)
+		log.Infof("start ordering of block %d, Timestamp: %d, Booth: %v", newBlockId, nowTime, booMgr.b[orderingBoothID].Indices)
 
 		//peformance metre
 		if PerfMetres {

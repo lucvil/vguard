@@ -144,8 +144,6 @@ func receivingOADialMessages(coordinatorId ServerId) {
 
 		err := postPhaseDialogInfo.dec.Decode(&m)
 
-		log.Infof("start ordering blockId: %v", m.BlockId)
-
 		if err == io.EOF {
 			nowTime := time.Now().UnixMilli()
 			log.Errorf("%v | coordinator closed connection | err: %v, time=%d", rpyPhase[OPA], err, nowTime)
@@ -158,6 +156,8 @@ func receivingOADialMessages(coordinatorId ServerId) {
 			log.Errorf("Gob Decode Err: %v", err)
 			continue
 		}
+
+		log.Infof("start ordering of block %d, Timestamp: %d, BlockchainId: %d", m.BlockId, time.Now().UnixMilli(), m.BlockchainId)
 
 		//メッセージとエンコーダー（orderPhaseDialogInfo.enc）が渡されます
 		go validatingOAEntry(&m, orderPhaseDialogInfo.enc)
@@ -270,6 +270,7 @@ func receivingCADialMessages(coordinatorId ServerId) {
 			continue
 		}
 
+		log.Infof("start consensus of consInstId: %d,Timestamp: %d, lenBlockRange: %d, BlockchainId: %d", m.ConsInstID, time.Now().UnixMilli(), len(m.BIDs), m.BlockchainId)
 		go validatingCAEntry(&m, CADialogInfo.enc)
 
 	}
@@ -294,7 +295,7 @@ func receivingCBDialMessages(coordinatorId ServerId) {
 			log.Errorf("%v: Gob Decode Err: %v", rpyPhase[CPB], err)
 			continue
 		}
-
+		log.Infof("start consensus phase b validation of consInstId: %d,Timestamp: %d, BlockchainId: %d", m.ConsInstID, time.Now().UnixMilli(), m.BlockchainId)
 		go validatingCBEntry(&m, CBDialogInfo.enc)
 	}
 }

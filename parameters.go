@@ -127,6 +127,9 @@ var (
 	// whether consider communication possiblity between proposer and validator
 	EvaluateComPossibilityFlag bool
 
+	//If EvaluateComPossibilityFlag is true, it dicide whether to allow bypass route
+	AllowBypassRoute bool
+
 	// ArterySimulationDelay float64
 
 	// BoothMode includes options for changing the booth dynamicity in evaluation
@@ -177,6 +180,9 @@ func loadCmdParameters() {
 
 	// for multiple proposer
 	flag.BoolVar(&EvaluateComPossibilityFlag, "ecf", true, "whether consider communication possiblity between proposer and validator")
+	// allow bypass route
+	flag.BoolVar(&AllowBypassRoute, "abr", false, "If EvaluateComPossibilityFlag is true, it dicide whether to allow bypass route")
+
 	// Add the proposer list flag
 	var proposerIds string
 	flag.StringVar(&proposerIds, "pl", "", "comma-separated list of proposer IDs")
