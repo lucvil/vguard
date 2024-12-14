@@ -16,3 +16,5 @@
 
 3. **multi_rsu_congestion_run.sh**  
 
+実験ごとにarteryのファイルパスを変えること。3箇所ある
+

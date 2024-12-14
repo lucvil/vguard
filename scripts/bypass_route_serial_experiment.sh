@@ -8,7 +8,7 @@ NETWORK_DELAY=0
 VEHICLE_SPEED_LIST=(80)
 COM_POSSIBILITY_FLAG=true
 # ALLOW_BYPASS_FLAG_LIST=(true false)
-ALLOW_BYPASS_FLAG_LIST=(false)
+ALLOW_BYPASS_FLAG_LIST=(true)
 
 # スタックサイズの制限を解除
 ulimit -s unlimited

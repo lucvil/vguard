@@ -3,7 +3,6 @@ package main
 import (
 	"io"
 	"net"
-	"reflect"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -108,10 +107,15 @@ func runAsProposer(proposerId ServerId) {
 	//データを事前に用意、requestQueueに格納
 	txGenerator(MsgSize)
 
-	//NumOfValidators, "w", 1, "number of worker threads"
-	time.Sleep(10 * time.Second) // 10秒待機
+	for {
+		if time.Now().UnixMilli()-simulationStartTime.time > InitialSyncBufferTime*1000 {
+			break
+		}
+	}
 
-	if ServerID == 1 {
+	log.Infof("orderingStartTime: %d, %d", time.Now().UnixMilli(), simulationStartTime.time)
+
+	if ServerID == MainProposerId {
 		for i := 0; i < NumOfValidators; i++ {
 			go startOrderingPhaseA(i)
 		}
@@ -449,7 +453,7 @@ func relayBetweenProposerMessage(coordinatorId ServerId, phase int) {
 		} else {
 			nextNode = recipient
 			sendMessage = receivedMessage.Message
-			log.Infof("sendMessage type: %v, nextNode: %d,NOW_Phase: %d", reflect.TypeOf(sendMessage), nextNode, phase)
+			// log.Infof("sendMessage type: %v, nextNode: %d,NOW_Phase: %d", reflect.TypeOf(sendMessage), nextNode, phase)
 		}
 
 		if nextNode == -1 {

@@ -67,7 +67,10 @@ var booMgr = struct {
 func fetchArteryData() {
 	// arteryFilePath := "../artery/scenarios/vguard-test/results/speed" + strconv.Itoa(VehicleSpeed) + "/300vehicle/extended_time_id.json"
 	// arteryFilePath := "./artery-data/output_" + strconv.Itoa(ServerID) + ".json"
-	arteryFilePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(ServerID) + "/immu_participant_node_" + strconv.Itoa(ServerID) + ".json"
+	//bypass_route実験
+	// arteryFilePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(ServerID) + "/immu_participant_node_" + strconv.Itoa(ServerID) + ".json"
+	//rsu間に参加車両の差がある時の実験,multi_rsu_congestion
+	arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed80_20/250vehicle/" + strconv.Itoa(ServerID) + "/immu_decided_participant_node_" + strconv.Itoa(ServerID) + ".json"
 
 	// JSONファイルを読み込む
 	file, err := os.Open(arteryFilePath)
@@ -99,7 +102,10 @@ func getThreshold(boothSize int) int {
 func fetchProToValComTimeMap(proposerList []ServerId) {
 	for _, proposerId := range proposerList {
 		// filePath := "./artery-data/communication-data-" + strconv.Itoa(int(proposerId)) + ".json"
-		filePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
+		//bypass_route実験
+		// filePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
+		//rsu間に参加車両の差がある時の実験,multi_rsu_congestion
+		filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed80_20/250vehicle/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
 
 		// JSONファイルを読み込む
 		file, err := os.Open(filePath)
@@ -140,7 +146,10 @@ func fetchProToValComTimeMap(proposerList []ServerId) {
 func fetchValToProComTimeMap(validatorList []ServerId) {
 	for _, validatorId := range validatorList {
 		// filePath := "./artery-data/communication-data-" + strconv.Itoa(int(validatorId)) + ".json"
-		filePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"
+		//bypass_route実験
+		// filePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"
+		//rsu間に参加車両の差がある時の実験,multi_rsu_congestion
+		filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed80_20/250vehicle/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"
 
 		// JSONファイルを読み込む
 		file, err := os.Open(filePath)
@@ -243,7 +252,7 @@ func getNowTimeKey() string {
 	simulationStartTime.RLock()
 	defer simulationStartTime.RUnlock()
 	pastTime := float64(nowTime) - float64(simulationStartTime.time)
-	pastTime = pastTime/1000 + ArterySimulationDelay
+	pastTime = pastTime/1000 + ArterySimulationDelay - InitialSyncBufferTime
 	pastTime = RoundToDecimal(pastTime, 3)
 
 	key := fmt.Sprintf("%.2f", pastTime)

@@ -77,6 +77,7 @@ func init() {
 	fmt.Printf("| Network delay\t| %3d\t|\n", Delay)
 	fmt.Printf("| Vechile speed\t| %3d\t|\n", VehicleSpeed)
 	fmt.Printf("| Proposer List\t| %v\t|\n", ProposerList)
+	fmt.Printf("| Main Proposer\t| %d\t|\n", MainProposerId)
 	fmt.Printf("-------------------------------\n")
 	if PlainStorage {
 		fmt.Printf("|-- Log shows at ./logs/s%d --|\n", ServerID)

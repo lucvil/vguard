@@ -95,7 +95,7 @@ func dialSendBackWithComCheck(m interface{}, encoder *gob.Encoder, phaseNumber i
 			return
 		}
 
-		detourEncoder := dialogMgr.conns[CPA][ServerId(detourNextNode)].enc
+		detourEncoder := dialogMgr.conns[phaseNumber][ServerId(detourNextNode)].enc
 
 		if detourEncoder == nil {
 			log.Errorf("%s | encoder is nil", rpyPhase[phaseNumber])

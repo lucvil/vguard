@@ -98,10 +98,12 @@ func validatingOAEntry(m *ProposerOPAEntry, encoder *gob.Encoder) {
 		blockchainInfo.RLock()
 		var recipientProposerId = blockchainInfo.m[postReply.BlockchainId][OPA]
 		blockchainInfo.RUnlock()
-		dialSendBackWithComCheck(postReply, encoder, OPA, recipientProposerId)
+		dialSendBackWithComCheck(postReply, encoder, OPB, recipientProposerId)
 	} else {
 		dialSendBack(postReply, encoder, OPA)
 	}
+
+	log.Infof("end ordering validate and send back blockId: %d", postReply.BlockId)
 }
 
 func validatingOBEntry(m *ProposerOPBEntry, encoder *gob.Encoder) {

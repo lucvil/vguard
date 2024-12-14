@@ -192,6 +192,8 @@ func startConsensusPhaseA() {
 
 func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 
+	log.Infof("receive cpa reply blockid: %d, validatorId: %d", m.ConsInstID, sid)
+
 	nowTime := time.Now().UnixMilli()
 
 	vgTxMeta.RLock()

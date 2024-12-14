@@ -12,7 +12,8 @@ const NOP = 5 // Number of phases 4+1(TIME)
 
 const MaxQueue = 10_000_000
 
-const ArterySimulationDelay = 100.0
+const ArterySimulationDelay = 200.0
+const InitialSyncBufferTime = 100.0
 
 const (
 	OPA = iota
@@ -116,6 +117,7 @@ var (
 	ConsInterval     int
 	ConfPath         string
 	VehicleSpeed     int
+	MainProposerId   int
 
 	// for multiple proposer
 	ProposerList  []ServerId
@@ -186,6 +188,7 @@ func loadCmdParameters() {
 	// Add the proposer list flag
 	var proposerIds string
 	flag.StringVar(&proposerIds, "pl", "", "comma-separated list of proposer IDs")
+	flag.IntVar(&MainProposerId, "mainp", 1, "main proposer id which make consensus")
 
 	flag.Parse()
 

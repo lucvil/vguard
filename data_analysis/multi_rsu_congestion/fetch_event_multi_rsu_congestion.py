@@ -209,42 +209,27 @@ network_delay = int(arguments[3])
 vehicle_speed = int(arguments[4])
 com_possibility_flag = True
 allow_bypass_flag = arguments[5].lower() == 'true'
+main_proposer_id = int(arguments[6])
 
 proposer_list = list(range(proposer_num))
 validator_list = list(range(proposer_num, participant_size))
 
 print(allow_bypass_flag)
 
-for proposer_id in proposer_list:
-    log_file = "./logs/s" +  str(proposer_id) + "/n_" + str(participant_size) + "_b100_d" + str(network_delay) + ".log"
-    proposer_ordering_event, proposer_consensus_event = extract_proposer_logs(log_file)
 
-    if allow_bypass_flag:
-        result_csv_folder = "./results/multi_rsu_congestion/vs"  + str(vehicle_speed) + "/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/" + str(proposer_id) + "/"
-    else:
-        result_csv_folder = "./results/multi_rsu_congestion/vs"  + str(vehicle_speed) + "/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/" + str(proposer_id) + "/"
+log_file = "./logs/s" +  str(main_proposer_id) + "/n_" + str(participant_size) + "_b100_d" + str(network_delay) + ".log"
+proposer_ordering_event, proposer_consensus_event = extract_proposer_logs(log_file)
 
-    if not os.path.exists(result_csv_folder):
-        os.makedirs(result_csv_folder)
+if allow_bypass_flag:
+    result_csv_folder = "./results/multi_rsu_congestion/vs"  + str(vehicle_speed) + "/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/" + str(main_proposer_id) + "/"
+else:
+    result_csv_folder = "./results/multi_rsu_congestion/vs"  + str(vehicle_speed) + "/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/" + str(main_proposer_id) + "/"
 
-    write_to_proposer_csv(proposer_ordering_event, result_csv_folder + "ordering_event.csv")
-    write_to_proposer_csv(proposer_consensus_event, result_csv_folder + "consensus_folder.csv")
+if not os.path.exists(result_csv_folder):
+    os.makedirs(result_csv_folder)
 
-for validator_id in validator_list:
-    log_file = "./logs/s" +  str(validator_id) + "/n_" + str(participant_size) + "_b100_d" + str(network_delay) + ".log"
-    validator_ordering_event, validator_consensus_event = extract_validator_logs(log_file, proposer_list)
-
-    for proposer_id in proposer_list:
-        if allow_bypass_flag:
-            result_csv_folder = "./results/multi_rsu_congestion/vs"  + str(vehicle_speed) + "/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/" + str(proposer_id) + "/"+ str(validator_id) + "/"
-        else:
-            result_csv_folder = "./results/multi_rsu_congestion/vs"  + str(vehicle_speed) + "/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/" + str(proposer_id) + "/"+ str(validator_id) + "/"
-
-        if not os.path.exists(result_csv_folder):
-            os.makedirs(result_csv_folder)
-
-        write_to_validator_csv(validator_ordering_event[str(proposer_id)], result_csv_folder + "ordering_event.csv")
-        write_to_validator_csv(validator_consensus_event[str(proposer_id)], result_csv_folder + "consensus_folder.csv")
+write_to_proposer_csv(proposer_ordering_event, result_csv_folder + "ordering_event.csv")
+write_to_proposer_csv(proposer_consensus_event, result_csv_folder + "consensus_folder.csv")
 
 
 

@@ -20,7 +20,8 @@
 -vs=$6 \
 -pl=$7 \
 -ecf=$8 \
--abr=$9
+-abr=$9 \
+-mainp=${10}
 
 # To run in cluster, change -cfp to the cluster config file.
 # E.g., -cfp="./config/cluster_4.conf"
