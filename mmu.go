@@ -70,7 +70,10 @@ func fetchArteryData() {
 	//bypass_route実験
 	// arteryFilePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(ServerID) + "/immu_participant_node_" + strconv.Itoa(ServerID) + ".json"
 	//rsu間に参加車両の差がある時の実験,multi_rsu_congestion
-	arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed80_20/250vehicle/" + strconv.Itoa(ServerID) + "/immu_decided_participant_node_" + strconv.Itoa(ServerID) + ".json"
+	// arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed80_20/250vehicle/" + strconv.Itoa(ServerID) + "/immu_decided_participant_node_" + strconv.Itoa(ServerID) + ".json"
+
+	//車両数を固定して再実験(強化学習のモデルデータ取り)
+	arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/fixed_v20/" + strconv.Itoa(ServerID) + "/immu_participant_node_" + strconv.Itoa(ServerID) + ".json"
 
 	// JSONファイルを読み込む
 	file, err := os.Open(arteryFilePath)
@@ -105,7 +108,10 @@ func fetchProToValComTimeMap(proposerList []ServerId) {
 		//bypass_route実験
 		// filePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
 		//rsu間に参加車両の差がある時の実験,multi_rsu_congestion
-		filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed80_20/250vehicle/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
+		// filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed80_20/250vehicle/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
+
+		//車両数を固定して再実験(強化学習のモデルデータ取り)
+		filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/fixed_v20/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
 
 		// JSONファイルを読み込む
 		file, err := os.Open(filePath)
@@ -148,8 +154,12 @@ func fetchValToProComTimeMap(validatorList []ServerId) {
 		// filePath := "./artery-data/communication-data-" + strconv.Itoa(int(validatorId)) + ".json"
 		//bypass_route実験
 		// filePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"
+
 		//rsu間に参加車両の差がある時の実験,multi_rsu_congestion
-		filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed80_20/250vehicle/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"
+		// filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed80_20/250vehicle/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"
+
+		//車両数を固定して再実験(強化学習のモデルデータ取り)
+		filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/fixed_v20/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"
 
 		// JSONファイルを読み込む
 		file, err := os.Open(filePath)

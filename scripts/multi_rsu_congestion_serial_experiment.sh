@@ -8,7 +8,8 @@ VEHICLE_SPEED=80
 COM_POSSIBILITY_FLAG=true
 ALLOW_BYPASS_FLAG=true
 # MAIN_PROPOSER_LIST=$(seq -s, 0 $((PROPOSER_NUM - 1)))
-MAIN_PROPOSER_LIST=(0 1 2)
+# MAIN_PROPOSER_LIST=(0 1 2)
+MAIN_PROPOSER_LIST=(1)
 
 # スタックサイズの制限を解除
 ulimit -s unlimited
@@ -22,8 +23,12 @@ do
   # Sleep for 60 seconds
   sleep 60
 
-  # Run the data analysis script
-  python ./data_analysis/multi_rsu_congestion/fetch_event_multi_rsu_congestion.py $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $ALLOW_BYPASS_FLAG $main_proposer
+  # # Run the data analysis script
+  # python ./data_analysis/multi_rsu_congestion/fetch_event_multi_rsu_congestion.py $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $ALLOW_BYPASS_FLAG $main_proposer
+
+
+  # Run the data analysis script（車両数を固定して再実験(強化学習のモデルデータ取り)）
+  python ./data_analysis/multi_rsu_congestion_fixed_vehicle_num/fetch_event_multi_rsu_congestion_fixed_vehicle_num.py $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $ALLOW_BYPASS_FLAG $main_proposer
 
   # Sleep for 5 seconds
   sleep 5
