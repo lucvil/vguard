@@ -4,7 +4,7 @@ PROPOSER_NUM=3
 VALIDATOR_NUM=250
 MESSAGE_SIZE=32
 NETWORK_DELAY=0
-VEHICLE_SPEED=80
+VEHICLE_SPEED=70
 COM_POSSIBILITY_FLAG=true
 ALLOW_BYPASS_FLAG=true
 # MAIN_PROPOSER_LIST=$(seq -s, 0 $((PROPOSER_NUM - 1)))
@@ -18,17 +18,17 @@ ulimit -s unlimited
 for main_proposer in "${MAIN_PROPOSER_LIST[@]}"
 do
   # Run the script with the current value as an argument
-  ./scripts/multi_rsu_congestion_single_experiment.sh $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $COM_POSSIBILITY_FLAG $ALLOW_BYPASS_FLAG $main_proposer
+  # ./scripts/multi_rsu_congestion_single_experiment.sh $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $COM_POSSIBILITY_FLAG $ALLOW_BYPASS_FLAG $main_proposer
 
   # Sleep for 60 seconds
-  sleep 60
+  # sleep 60
 
   # # Run the data analysis script
-  # python ./data_analysis/multi_rsu_congestion/fetch_event_multi_rsu_congestion.py $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $ALLOW_BYPASS_FLAG $main_proposer
+  python ./data_analysis/multi_rsu_congestion_with_immu/fetch_event_multi_rsu_congestion_with_immu.py $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $ALLOW_BYPASS_FLAG $main_proposer
 
 
   # Run the data analysis script（車両数を固定して再実験(強化学習のモデルデータ取り)）
-  python ./data_analysis/multi_rsu_congestion_fixed_vehicle_num/fetch_event_multi_rsu_congestion_fixed_vehicle_num.py $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $ALLOW_BYPASS_FLAG $main_proposer
+  # python ./data_analysis/multi_rsu_congestion_fixed_vehicle_num/fetch_event_multi_rsu_congestion_fixed_vehicle_num.py $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $ALLOW_BYPASS_FLAG $main_proposer
 
   # Sleep for 5 seconds
   sleep 5

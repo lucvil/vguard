@@ -109,7 +109,6 @@ def extract_validator_logs(file_path, proposer_list):
     
     return ordering_event, consensus_event
 
-
 def write_to_proposer_csv(data, file_path):
     with open(file_path, 'w', newline='') as csvfile:
         # booth 列を追加
@@ -196,7 +195,6 @@ def write_to_validator_csv(data, file_path):
             #     'len_block_range': len_block_range,
             #     'booth': booth  # booth を書き込み
             # })
-
 
 
 arguments = sys.argv[1:]

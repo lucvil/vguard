@@ -233,11 +233,15 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 		return
 	}
 
-	log.Infof("start consensus phase_b_pro of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
+	log.Infof("start consensus phase_b_pro of consInstId: %d,Timestamp: %d", m.ConsInstID, time.Now().UnixMilli())
 	log.Debugf(" ** votes sufficient | rangeId: %v | votes: %d | sid: %v", m.ConsInstID, len(partialSig), sid)
 
 	publicPolyPCA, _ := fetchKeysByBoothId(threshold, ServerID, residingBooth.ID, m.BlockchainId)
+
+	log.Infof("end fetch publickPolyPCA key of consInstId: %d,Timestamp: %d", m.ConsInstID, time.Now().UnixMilli())
 	recoveredSig, err := PenRecovery(partialSig, &fetchedTotalHash, publicPolyPCA, boothSize)
+
+	log.Infof("end recover Sig of consInstId: %d,Timestamp: %d", m.ConsInstID, time.Now().UnixMilli())
 	if err != nil {
 		log.Errorf("partialSig: %v, fetchedTotalHash; %v", partialSig, &fetchedTotalHash)
 
