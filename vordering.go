@@ -152,6 +152,8 @@ func startOrderingPhaseA(i int) {
 		shuffle.counter = 0
 		shuffle.entries = make(map[int]Entry)
 
+		log.Infof("end ordering phase_a_pro of block %d,Timestamp: %d", postEntry.BlockId, time.Now().UnixMilli())
+
 		//broadcast
 		if EvaluateComPossibilityFlag {
 			broadcastToBoothWithComCheck(postEntry, OPA, orderingBoothID)
@@ -225,7 +227,7 @@ func asyncHandleOBReply(m *ValidatorOPAReply, sid ServerId) {
 		return
 	}
 
-	// log.Infof("collect enough OBReply")
+	log.Infof("end ordering phase_a_vali of block %d,Timestamp: %d", m.BlockId, time.Now().UnixMilli())
 
 	///複数の署名断片から完全なデジタル署名を復元するための関数s
 	publicPolyPOB, _ := fetchKeysByBoothId(threshold, ServerID, currBooth.ID, m.BlockchainId)

@@ -63,8 +63,6 @@ func startConsensusPhaseA() {
 		var newMembers []int
 		var resentOPBEntries []ProposerOPBEntry
 
-		nowTime = time.Now().UnixMilli()
-		log.Infof("start consensus phase_a_make_block_pro of consInstId: %d,Timestamp: %d, lenBlockRange: %d", consInstID, nowTime, len(blockIDRange))
 		for _, blockID := range blockIDRange {
 			var blockEntries []Entry
 
@@ -130,7 +128,6 @@ func startConsensusPhaseA() {
 			vgTxData.Unlock()
 		}
 		nowTime = time.Now().UnixMilli()
-		log.Infof("end consensus phase_a_make_block_pro of consInstId: %d,Timestamp: %d, lenBlockRange: %d", consInstID, nowTime, len(blockIDRange))
 
 		serialized, err := serialization(blockHashesInRange)
 
@@ -166,8 +163,7 @@ func startConsensusPhaseA() {
 		vgTxMeta.blockIDs[blockchainId][consInstID] = blockIDRange
 		vgTxMeta.Unlock()
 
-		nowTime = time.Now().UnixMilli()
-		log.Infof("end consensus phase_a_pro of consInstId: %d,Timestamp: %d, lenBlockRange: %d", consInstID, nowTime, len(blockIDRange))
+		log.Infof("end consensus phase_a_pro of consInstId: %d,Timestamp: %d", consInstID, time.Now().UnixMilli())
 
 		if newMembers == nil {
 			if EvaluateComPossibilityFlag {
@@ -192,7 +188,7 @@ func startConsensusPhaseA() {
 
 func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 
-	log.Infof("receive cpa reply blockid: %d, validatorId: %d", m.ConsInstID, sid)
+	// log.Infof("receive cpa reply blockid: %d, validatorId: %d", m.ConsInstID, sid)
 
 	nowTime := time.Now().UnixMilli()
 
@@ -233,7 +229,8 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 		return
 	}
 
-	log.Infof("start consensus phase_b_pro of consInstId: %d,Timestamp: %d", m.ConsInstID, time.Now().UnixMilli())
+	log.Infof("end consensus phase_a_vali of consInstId: %d,Timestamp: %d", m.ConsInstID, time.Now().UnixMilli())
+
 	log.Debugf(" ** votes sufficient | rangeId: %v | votes: %d | sid: %v", m.ConsInstID, len(partialSig), sid)
 
 	publicPolyPCA, _ := fetchKeysByBoothId(threshold, ServerID, residingBooth.ID, m.BlockchainId)

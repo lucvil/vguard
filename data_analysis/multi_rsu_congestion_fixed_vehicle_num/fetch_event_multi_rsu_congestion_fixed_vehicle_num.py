@@ -17,6 +17,20 @@ def extract_proposer_logs(file_path):
                 booth = list(map(int, match.group(3).split()))  # Booth の数値をリストに変換
                 ordering_event[block_id] = {"start_time": start_time, "booth": booth}
                 continue
+
+            match = re.search(r"end ordering phase_a_pro of block (\d+), Timestamp: (\d+)", line)
+            if match:
+                block_id = match.group(1)
+                end_phase_a_pro_time = int(match.group(2))
+                ordering_event[block_id]["end_phase_a_pro_time"] = end_phase_a_pro_time
+                continue
+
+            match = re.search(r"end ordering phase_a_vali of block (\d+), Timestamp: (\d+)", line)
+            if match:
+                block_id = match.group(1)
+                end_phase_a_vali_time = int(match.group(2))
+                ordering_event[block_id]["end_phase_a_vali_time"] = end_phase_a_vali_time
+                continue
             
             match = re.search(r"end ordering of block (\d+), Timestamp: (\d+)", line)
             if match:
@@ -36,6 +50,20 @@ def extract_proposer_logs(file_path):
                 consensus_event[consensus_id] = {"start_time": start_time}
                 consensus_event[consensus_id]["len_block_range"] = len_block_id
                 consensus_event[consensus_id]["booth"] = booth
+                continue
+
+            match = re.search(r"end consensus phase_a_pro of consInstId: (\d+),Timestamp: (\d+)", line)
+            if match:
+                consensus_id = match.group(1)
+                end_phase_a_pro_time = int(match.group(2))
+                consensus_event[consensus_id]["end_phase_a_pro_time"] = end_phase_a_pro_time
+                continue
+
+            match = re.search(r"end consensus phase_a_vali of consInstId: (\d+),Timestamp: (\d+)", line)
+            if match:
+                consensus_id = match.group(1)
+                end_phase_a_vali_time = int(match.group(2))
+                consensus_event[consensus_id]["end_phase_a_vali_time"] = end_phase_a_vali_time
                 continue
                 
             match = re.search(r"end consensus of consInstId: (\d+),Timestamp: (\d+)", line)
@@ -113,7 +141,7 @@ def extract_validator_logs(file_path, proposer_list):
 def write_to_proposer_csv(data, file_path):
     with open(file_path, 'w', newline='') as csvfile:
         # booth 列を追加
-        fieldnames = ['id', 'start_time', 'end_time', 'duration', 'len_block_range', 'booth']
+        fieldnames = ['id', 'start_time', 'end_phase_a_pro_time', 'end_phase_a_vali_time', 'end_time', 'duration', 'len_block_range', 'booth']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         
@@ -122,6 +150,8 @@ def write_to_proposer_csv(data, file_path):
         for key, values in data.items():
             start_time = values.get("start_time", "null")
             end_time = values.get("end_time", "null")
+            end_phase_a_pro_time = values.get("end_phase_a_pro_time", "null")
+            end_phase_a_vali_time = values.get("end_phase_a_vali_time", "null")
             
             # duration の計算
             if start_time != "null" and end_time != "null":
@@ -142,6 +172,8 @@ def write_to_proposer_csv(data, file_path):
             writer.writerow({
                 'id': key,
                 'start_time': start_time,
+                'end_phase_a_pro_time': end_phase_a_pro_time,
+                'end_phase_a_vali_time': end_phase_a_vali_time,
                 'end_time': end_time,
                 'duration': duration,
                 'len_block_range': len_block_range,
@@ -229,6 +261,4 @@ if not os.path.exists(result_csv_folder):
 
 write_to_proposer_csv(proposer_ordering_event, result_csv_folder + "ordering_event.csv")
 write_to_proposer_csv(proposer_consensus_event, result_csv_folder + "consensus_folder.csv")
-
-
 

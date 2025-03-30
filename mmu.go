@@ -70,7 +70,8 @@ func fetchArteryData() {
 	//bypass_route実験
 	// arteryFilePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(ServerID) + "/immu_participant_node_" + strconv.Itoa(ServerID) + ".json"
 	//rsu間に参加車両の差がある時の実験,multi_rsu_congestion
-	arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed70_30/250vehicle/" + strconv.Itoa(ServerID) + "/immu_decided_participant_node_" + strconv.Itoa(ServerID) + ".json"
+	arteryFilePath := "../artery/scenarios/multiple-rsu-single-street-congestion/results/speed70_30/160vehicle/" + strconv.Itoa(ServerID) + "/immu_wd_decided_participant_node_" + strconv.Itoa(ServerID) + ".json"
+	// arteryFilePath := "../artery/scenarios/multiple-rsu-single-street-congestion/results/speed70_30/160vehicle/" + strconv.Itoa(ServerID) + "/communication_node_for_vguard_" + strconv.Itoa(ServerID) + ".json"
 
 	//車両数を固定して再実験(強化学習のモデルデータ取り)
 	// arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/fixed_v25/" + strconv.Itoa(ServerID) + "/immu_participant_node_" + strconv.Itoa(ServerID) + ".json"
@@ -108,7 +109,7 @@ func fetchProToValComTimeMap(proposerList []ServerId) {
 		//bypass_route実験
 		// filePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
 		//rsu間に参加車両の差がある時の実験,multi_rsu_congestion
-		filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed70_30/250vehicle/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
+		filePath := "../artery/scenarios/multiple-rsu-single-street-congestion/results/speed70_30/160vehicle/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
 
 		//車両数を固定して再実験(強化学習のモデルデータ取り)
 		// filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/fixed_v25/" + strconv.Itoa(int(proposerId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(proposerId)) + ".json"
@@ -156,7 +157,7 @@ func fetchValToProComTimeMap(validatorList []ServerId) {
 		// filePath := "../artery/scenarios/multiple-rsu-street/results/speed" + strconv.Itoa(VehicleSpeed) + "/250vehicle/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"
 
 		//rsu間に参加車両の差がある時の実験,multi_rsu_congestion
-		filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed70_30/250vehicle/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"
+		filePath := "../artery/scenarios/multiple-rsu-single-street-congestion/results/speed70_30/160vehicle/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"
 
 		//車両数を固定して再実験(強化学習のモデルデータ取り)
 		// filePath := "../artery/scenarios/multiple-rsu-street-congestion/results/fixed_v25/" + strconv.Itoa(int(validatorId)) + "/communication_node_for_vguard_" + strconv.Itoa(int(validatorId)) + ".json"

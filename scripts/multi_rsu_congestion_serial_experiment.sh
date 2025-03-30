@@ -2,7 +2,7 @@
 
 PROPOSER_NUM=3
 VALIDATOR_NUM=250
-MESSAGE_SIZE=32
+MESSAGE_SIZE_LIST=(256)
 NETWORK_DELAY=0
 VEHICLE_SPEED=70
 COM_POSSIBILITY_FLAG=true
@@ -15,24 +15,27 @@ MAIN_PROPOSER_LIST=(1)
 ulimit -s unlimited
 
 # Loop through the specified range of values
-for main_proposer in "${MAIN_PROPOSER_LIST[@]}"
+for message_size in "${MESSAGE_SIZE_LIST[@]}"
 do
-  # Run the script with the current value as an argument
-  # ./scripts/multi_rsu_congestion_single_experiment.sh $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $COM_POSSIBILITY_FLAG $ALLOW_BYPASS_FLAG $main_proposer
+  for main_proposer in "${MAIN_PROPOSER_LIST[@]}"
+  do
+    # Run the script with the current value as an argument
+    ./scripts/multi_rsu_congestion_single_experiment.sh $PROPOSER_NUM $VALIDATOR_NUM $message_size $NETWORK_DELAY $VEHICLE_SPEED $COM_POSSIBILITY_FLAG $ALLOW_BYPASS_FLAG $main_proposer
 
-  # Sleep for 60 seconds
-  # sleep 60
+    # Sleep for 60 seconds
+    sleep 60
 
-  # # Run the data analysis script
-  python ./data_analysis/multi_rsu_congestion_with_immu/fetch_event_multi_rsu_congestion_with_immu.py $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $ALLOW_BYPASS_FLAG $main_proposer
+    # # Run the data analysis script
+    # python ./data_analysis/multi_rsu_congestion_with_immu/fetch_event_multi_rsu_congestion_with_immu.py $PROPOSER_NUM $VALIDATOR_NUM $message_size $NETWORK_DELAY $VEHICLE_SPEED $ALLOW_BYPASS_FLAG $main_proposer
 
 
-  # Run the data analysis script（車両数を固定して再実験(強化学習のモデルデータ取り)）
-  # python ./data_analysis/multi_rsu_congestion_fixed_vehicle_num/fetch_event_multi_rsu_congestion_fixed_vehicle_num.py $PROPOSER_NUM $VALIDATOR_NUM $MESSAGE_SIZE $NETWORK_DELAY $VEHICLE_SPEED $ALLOW_BYPASS_FLAG $main_proposer
+    # Run the data analysis script（車両数を固定して再実験(強化学習のモデルデータ取り)）
+    python ./data_analysis/multi_rsu_congestion_fixed_vehicle_num/fetch_event_multi_rsu_congestion_fixed_vehicle_num.py $PROPOSER_NUM $VALIDATOR_NUM $message_size $NETWORK_DELAY $VEHICLE_SPEED $ALLOW_BYPASS_FLAG $main_proposer
 
-  # Sleep for 5 seconds
-  sleep 5
+    # Sleep for 5 seconds
+    sleep 5
 
-  # Print a message to the console
-  echo "Finished vehicle_speed: $VEHICLE_SPEED, allow_bypass_flag: $ALLOW_BYPASS_FLAG"
+    # Print a message to the console
+    echo "Finished vehicle_speed: $VEHICLE_SPEED, allow_bypass_flag: $ALLOW_BYPASS_FLAG"
+  done 
 done
