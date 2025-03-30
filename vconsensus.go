@@ -10,18 +10,22 @@ func startConsensusPhaseA() {
 
 	for {
 		commitBoothID := getBoothID()
+		var blockchainId = ServerID
 
-		switch BoothMode {
-		case BoothModeOCSB:
+		// switch BoothMode {
+		// case BoothModeOCSB:
 
-		case BoothModeOCDBWOP:
-			commitBoothID = BoothIDOfModeOCDBWOP
-		case BoothModeOCDBNOP:
-			commitBoothID = BoothIDOfModeOCDBNOP
-		}
+		// case BoothModeOCDBWOP:
+		// 	commitBoothID = BoothIDOfModeOCDBWOP
+		// case BoothModeOCDBNOP:
+		// 	commitBoothID = BoothIDOfModeOCDBNOP
+		// }
 
 		commitBooth := booMgr.b[commitBoothID]
 		time.Sleep(time.Duration(ConsInterval) * time.Millisecond)
+
+		// start time
+		nowTime := time.Now().UnixMilli()
 
 		blockIDRange := vgrec.GetIDRange()
 
@@ -41,10 +45,19 @@ func startConsensusPhaseA() {
 			return
 		}
 
+		// log.Infof("start consensus of consInstId: %d, blockIDRange: %d,Timestamp: %d", consInstID, blockIDRange, nowTime)
+		log.Infof("start consensus of consInstId: %d,Timestamp: %d, lenBlockRange: %d, Booth: %v", consInstID, nowTime, len(blockIDRange), commitBooth.Indices)
+
 		blockHashesInRange := make(map[int64][]byte)
 
 		vgTxData.Lock()
-		vgTxData.tx[consInstID] = make(map[string][][]Entry)
+		if _, ok := vgTxData.tx[blockchainId]; !ok {
+			vgTxData.tx[blockchainId] = make(map[int]map[string][][]Entry)
+		}
+		if _, ok := vgTxData.boo[blockchainId]; !ok {
+			vgTxData.boo[blockchainId] = make(map[int]Booth)
+		}
+		vgTxData.tx[blockchainId][consInstID] = make(map[string][][]Entry)
 		vgTxData.Unlock()
 
 		var newMembers []int
@@ -54,7 +67,7 @@ func startConsensusPhaseA() {
 			var blockEntries []Entry
 
 			cmtSnapshot.Lock()
-			blockCmtFrag, ok := cmtSnapshot.m[blockID]
+			blockCmtFrag, ok := cmtSnapshot.m[blockchainId][blockID]
 			cmtSnapshot.Unlock()
 
 			if !ok {
@@ -85,14 +98,16 @@ func startConsensusPhaseA() {
 
 			if newMemberFlag {
 				resentOPBEntries = append(resentOPBEntries, ProposerOPBEntry{
-					Booth:   ordBoo,
-					BlockId: blockID,
-					CombSig: blockCmtFrag.tSig,
-					Entries: blockCmtFrag.entries,
-					Hash:    blockCmtFrag.hash,
+					BlockchainId: blockchainId,
+					Booth:        ordBoo,
+					BlockId:      blockID,
+					CombSig:      blockCmtFrag.tSig,
+					Entries:      blockCmtFrag.entries,
+					Hash:         blockCmtFrag.hash,
 				})
 				if blockCmtFrag.tSig == nil {
 					log.Errorf("CombSig is nil ! len of Entries: %v", len(blockCmtFrag.entries))
+					log.Errorf("blockCmtFrag: %+v", blockCmtFrag)
 				}
 			}
 
@@ -103,15 +118,16 @@ func startConsensusPhaseA() {
 			}
 
 			vgTxData.Lock()
-			if _, ok := vgTxData.tx[consInstID][boo]; ok {
-				vgTxData.tx[consInstID][boo] = append(vgTxData.tx[consInstID][boo], blockEntries)
+			if _, ok := vgTxData.tx[blockchainId][consInstID][boo]; ok {
+				vgTxData.tx[blockchainId][consInstID][boo] = append(vgTxData.tx[blockchainId][consInstID][boo], blockEntries)
 			} else {
-				vgTxData.tx[consInstID][boo] = [][]Entry{blockEntries}
+				vgTxData.tx[blockchainId][consInstID][boo] = [][]Entry{blockEntries}
 			}
 
-			vgTxData.boo[consInstID] = commitBooth
+			vgTxData.boo[blockchainId][consInstID] = commitBooth
 			vgTxData.Unlock()
 		}
+		nowTime = time.Now().UnixMilli()
 
 		serialized, err := serialization(blockHashesInRange)
 
@@ -124,6 +140,7 @@ func startConsensusPhaseA() {
 
 		entryCA := ProposerCPAEntry{
 			PrevOPBEntries: nil,
+			BlockchainId:   blockchainId,
 			Booth:          commitBooth,
 			BIDs:           blockIDRange,
 			ConsInstID:     consInstID,
@@ -131,19 +148,39 @@ func startConsensusPhaseA() {
 			TotalHash:      totalHash,
 		}
 
+		// store the hash and blockIDRange before sending to vaidators
+		vgTxMeta.Lock()
+		if _, ok := vgTxMeta.sigs[blockchainId]; !ok {
+			vgTxMeta.sigs[blockchainId] = make(map[int][][]byte)
+		}
+		if _, ok := vgTxMeta.hash[blockchainId]; !ok {
+			vgTxMeta.hash[blockchainId] = make(map[int][]byte)
+		}
+		if _, ok := vgTxMeta.blockIDs[blockchainId]; !ok {
+			vgTxMeta.blockIDs[blockchainId] = make(map[int][]int64)
+		}
+		vgTxMeta.hash[blockchainId][consInstID] = totalHash
+		vgTxMeta.blockIDs[blockchainId][consInstID] = blockIDRange
+		vgTxMeta.Unlock()
+
+		log.Infof("end consensus phase_a_pro of consInstId: %d,Timestamp: %d", consInstID, time.Now().UnixMilli())
+
 		if newMembers == nil {
-			broadcastToBooth(entryCA, CPA, commitBoothID)
+			if EvaluateComPossibilityFlag {
+				broadcastToBoothWithComCheck(entryCA, CPA, commitBoothID)
+			} else {
+				broadcastToBooth(entryCA, CPA, commitBoothID)
+			}
 		} else {
 			newEntryCA := entryCA
 			newEntryCA.SetPrevOPBEntries(resentOPBEntries)
 			log.Debugf("%s | sending newEntry CA to %v | len(resentOPBEntries): %v", cmdPhase[CPA], newMembers, len(resentOPBEntries))
-			broadcastToNewBooth(entryCA, CPA, commitBoothID, newMembers, newEntryCA)
+			if EvaluateComPossibilityFlag {
+				broadcastToNewBoothWithComCheck(entryCA, CPA, commitBoothID, newMembers, newEntryCA)
+			} else {
+				broadcastToNewBooth(entryCA, CPA, commitBoothID, newMembers, newEntryCA)
+			}
 		}
-
-		vgTxMeta.Lock()
-		vgTxMeta.hash[consInstID] = totalHash
-		vgTxMeta.blockIDs[consInstID] = blockIDRange
-		vgTxMeta.Unlock()
 
 		consInstID++
 	}
@@ -151,9 +188,13 @@ func startConsensusPhaseA() {
 
 func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 
+	// log.Infof("receive cpa reply blockid: %d, validatorId: %d", m.ConsInstID, sid)
+
+	nowTime := time.Now().UnixMilli()
+
 	vgTxMeta.RLock()
-	fetchedTotalHash, ok := vgTxMeta.hash[m.ConsInstID]
-	partialSig := vgTxMeta.sigs[m.ConsInstID]
+	fetchedTotalHash, ok := vgTxMeta.hash[m.BlockchainId][m.ConsInstID]
+	partialSig := vgTxMeta.sigs[m.BlockchainId][m.ConsInstID]
 	vgTxMeta.RUnlock()
 
 	if !ok {
@@ -162,49 +203,69 @@ func asyncHandleCPAReply(m *ValidatorCPAReply, sid ServerId) {
 	}
 
 	vgTxData.RLock()
-	residingBooth := vgTxData.boo[m.ConsInstID]
+	residingBooth := vgTxData.boo[m.BlockchainId][m.ConsInstID]
 	vgTxData.RUnlock()
 
-	if len(partialSig) == Threshold {
+	boothSize := len(residingBooth.Indices)
+	threshold := getThreshold(len(residingBooth.Indices))
+
+	if len(partialSig) == threshold {
 		log.Debugf("%s | Batch already committed| commitIndicator: %v | Threshold: %v | RangeId: %v | sid: %v",
-			cmdPhase[CPA], len(partialSig), Threshold, m.ConsInstID, sid)
+			cmdPhase[CPA], len(partialSig), threshold, m.ConsInstID, sid)
 		return
 	}
 
 	partialSig = append(partialSig, m.ParSig)
 
 	vgTxMeta.Lock()
-	vgTxMeta.sigs[m.ConsInstID] = partialSig
+	vgTxMeta.sigs[m.BlockchainId][m.ConsInstID] = partialSig
 	vgTxMeta.Unlock()
 
-	if len(partialSig) < Threshold {
+	if len(partialSig) < threshold {
 		log.Debugf("%s | insufficient votes | blockId: %d | indicator: %d | sid: %v", cmdPhase[CPA], m.ConsInstID, len(partialSig), sid)
 		return
-	} else if len(partialSig) > Threshold {
+	} else if len(partialSig) > threshold {
 		log.Debugf("%s | block %d already broadcastToBooth | indicator: %d | sid: %v", cmdPhase[CPA], m.ConsInstID, len(partialSig), sid)
 		return
 	}
 
+	log.Infof("end consensus phase_a_vali of consInstId: %d,Timestamp: %d", m.ConsInstID, time.Now().UnixMilli())
+
 	log.Debugf(" ** votes sufficient | rangeId: %v | votes: %d | sid: %v", m.ConsInstID, len(partialSig), sid)
 
-	recoveredSig, err := PenRecovery(partialSig, &fetchedTotalHash, PublicPoly)
+	publicPolyPCA, _ := fetchKeysByBoothId(threshold, ServerID, residingBooth.ID, m.BlockchainId)
+
+	log.Infof("end fetch publickPolyPCA key of consInstId: %d,Timestamp: %d", m.ConsInstID, time.Now().UnixMilli())
+	recoveredSig, err := PenRecovery(partialSig, &fetchedTotalHash, publicPolyPCA, boothSize)
+
+	log.Infof("end recover Sig of consInstId: %d,Timestamp: %d", m.ConsInstID, time.Now().UnixMilli())
 	if err != nil {
-		log.Errorf("%s | PenRecovery failed | len(sigShares): %d | error: %v", cmdPhase[CPA], len(partialSig), err)
+		log.Errorf("partialSig: %v, fetchedTotalHash; %v", partialSig, &fetchedTotalHash)
+
+		log.Errorf("%s | PenRecovery failed | len(sigShares): %d | threshold: %d | publicPolyPCA: %+v | m.BlockchainId: %d | residingBooth.ID: %d | Block.ID: %d |error: %v", cmdPhase[CPA], len(partialSig), threshold, publicPolyPCA, m.BlockchainId, residingBooth.ID, m.ConsInstID, err)
 		return
 	}
 
 	entryCB := ProposerCPBEntry{
-		Booth:      residingBooth,
-		ConsInstID: m.ConsInstID,
-		ComSig:     recoveredSig,
-		Hash:       fetchedTotalHash,
+		BlockchainId: m.BlockchainId,
+		Booth:        residingBooth,
+		ConsInstID:   m.ConsInstID,
+		ComSig:       recoveredSig,
+		Hash:         fetchedTotalHash,
 	}
 
-	broadcastToBooth(entryCB, CPB, residingBooth.ID)
-
-	if !PerfMetres {
-		storeVgTx(m.ConsInstID)
+	if EvaluateComPossibilityFlag {
+		broadcastToBoothWithComCheck(entryCB, CPB, residingBooth.ID)
+	} else {
+		broadcastToBooth(entryCB, CPB, residingBooth.ID)
 	}
+
+	nowTime = time.Now().UnixMilli()
+	log.Infof("end consensus of consInstId: %d,Timestamp: %d", m.ConsInstID, nowTime)
+
+	// if PerfMetres {
+	// 	// storeVgTx(m.ConsInstID)
+	// }
 
 	// Future work: garbage collection
 

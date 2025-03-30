@@ -2,19 +2,25 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 )
 
-const NOP = 4 // Number of phases
+const NOP = 5 // Number of phases 4+1(TIME)
 
 const MaxQueue = 10_000_000
+
+const ArterySimulationDelay = 200.0
+const InitialSyncBufferTime = 100.0
 
 const (
 	OPA = iota
 	OPB
 	CPA
 	CPB
+	TIME
 )
 
 const (
@@ -22,10 +28,12 @@ const (
 	ListenerPortOPB
 	ListenerPortOCA
 	ListenerPortOCB
+	ListenerPortTIME
 	DialPortOPA
 	DialPortOPB
 	DialPortCPA
 	DialPortCPB
+	DialPortTIME
 )
 
 // Below are three booth modes for testing the performance of VG in dynamic membership
@@ -44,8 +52,8 @@ const (
 
 var boothFromMode [3]int
 
-var cmdPhase = []string{"OPA", "OPB", "CPA", "CPB"}
-var rpyPhase = []string{"R-OPA", "R-OPB", "R-CPA", "R-CPB"}
+var cmdPhase = []string{"OPA", "OPB", "CPA", "CPB", "TIME"}
+var rpyPhase = []string{"R-OPA", "R-OPB", "R-CPA", "R-CPB", "TIME"}
 
 type ServerId int
 type Phase int
@@ -77,17 +85,24 @@ var serverIdLookup = struct {
 
 var proposerLookup = struct {
 	sync.RWMutex
-	m map[Phase]ServerId
-}{m: make(map[Phase]ServerId)}
+	// m map[Phase]ServerId
+	m map[Phase][]ServerId
+}{m: make(map[Phase][]ServerId)}
+
+// blockchainIdとproposerとなるserverIdとの対応関係
+var blockchainInfo = struct {
+	sync.RWMutex
+	m map[int]map[Phase]ServerId
+}{m: make(map[int]map[Phase]ServerId)}
 
 var (
-	BatchSize        int
-	MsgSize          int
-	MsgLoad          int64
-	NumOfValidators  int
-	NumOfConn        int
-	BoothSize        int
-	Threshold        int
+	BatchSize       int
+	MsgSize         int
+	MsgLoad         int64
+	NumOfValidators int
+	NumOfConn       int
+	// BoothSize        int
+	// Threshold        int
 	LogLevel         int
 	ServerID         int
 	Delay            int
@@ -101,6 +116,23 @@ var (
 	ConsWaitingSec   int
 	ConsInterval     int
 	ConfPath         string
+	VehicleSpeed     int
+	MainProposerId   int
+
+	// for multiple proposer
+	ProposerList  []ServerId
+	ValidatorList struct {
+		sync.Mutex
+		list []ServerId
+	}
+
+	// whether consider communication possiblity between proposer and validator
+	EvaluateComPossibilityFlag bool
+
+	//If EvaluateComPossibilityFlag is true, it dicide whether to allow bypass route
+	AllowBypassRoute bool
+
+	// ArterySimulationDelay float64
 
 	// BoothMode includes options for changing the booth dynamicity in evaluation
 	BoothMode int
@@ -121,7 +153,7 @@ func loadCmdParameters() {
 	flag.Int64Var(&MsgLoad, "ml", 1000, "# of msg to be sent < "+strconv.Itoa(MaxQueue))
 	flag.IntVar(&NumOfValidators, "w", 1, "number of worker threads")
 	flag.IntVar(&NumOfConn, "c", 6, "max # of connections")
-	flag.IntVar(&BoothSize, "boo", 4, "# of vehicles in a booth")
+	// flag.IntVar(&BoothSize, "boo", 4, "# of vehicles in a booth")
 	flag.IntVar(&ServerID, "id", 0, "serverID")
 	flag.IntVar(&Delay, "d", 0, "network delay")
 	flag.BoolVar(&PlainStorage, "s", false, "naive storage")
@@ -136,18 +168,46 @@ func loadCmdParameters() {
 	flag.IntVar(&LogLevel, "log", InfoLevel, "0: Panic | 1: Fatal | 2: Error | 3: Warn | 4: Info | 5: Debug")
 	flag.StringVar(&ConfPath, "cfp", "./config/cluster_localhost.conf", "config file path")
 
-	flag.IntVar(&BoothMode, "bm", 2, "booth mode: 0, 1, or 2")
+	flag.IntVar(&VehicleSpeed, "vs", 80, "vehicle speed (km/h)")
+
+	flag.IntVar(&BoothMode, "bm", 0, "booth mode: 0, 1, or 2")
 	flag.IntVar(&BoothIDOfModeOCSB, "ocsb", 0, "BoothIDOfModeOCSB")
-	flag.IntVar(&BoothIDOfModeOCDBWOP, "ocdbwop", 1, "BoothIDOfModeOCDBWOP")
-	flag.IntVar(&BoothIDOfModeOCDBNOP, "ocdbnop", 5, "BoothIDOfModeOCDBNOP")
+	// flag.IntVar(&BoothIDOfModeOCDBWOP, "ocdbwop", 1, "BoothIDOfModeOCDBWOP")
+	// flag.IntVar(&BoothIDOfModeOCDBNOP, "ocdbnop", 5, "BoothIDOfModeOCDBNOP")
+	flag.IntVar(&BoothIDOfModeOCDBWOP, "ocdbwop", 0, "BoothIDOfModeOCDBWOP")
+	flag.IntVar(&BoothIDOfModeOCDBNOP, "ocdbnop", 0, "BoothIDOfModeOCDBNOP")
 
 	//flag.IntVar(&SlowModeCycleNum, "sm", 3, "# of cycles going in slow mode")
 	//flag.IntVar(&SleepTimeInSlowMode, "smt", 1, "slow mode cycle sleep time (second)")
 
+	// for multiple proposer
+	flag.BoolVar(&EvaluateComPossibilityFlag, "ecf", true, "whether consider communication possiblity between proposer and validator")
+	// allow bypass route
+	flag.BoolVar(&AllowBypassRoute, "abr", false, "If EvaluateComPossibilityFlag is true, it dicide whether to allow bypass route")
+
+	// Add the proposer list flag
+	var proposerIds string
+	flag.StringVar(&proposerIds, "pl", "", "comma-separated list of proposer IDs")
+	flag.IntVar(&MainProposerId, "mainp", 1, "main proposer id which make consensus")
+
 	flag.Parse()
 
-	Quorum = (BoothSize/3)*2 + 1
-	Threshold = Quorum - 1
+	// Split the proposerIds into an array and convert to int
+	if proposerIds != "" {
+		proposerStrIds := strings.Split(proposerIds, ",")
+		for _, strId := range proposerStrIds {
+			id, err := strconv.Atoi(strId)
+			if err != nil {
+				log.Fatalf("Invalid proposer ID: %s", strId)
+			}
+			ProposerList = append(ProposerList, ServerId(id))
+		}
+	} else {
+		fmt.Println("No proposer IDs provided")
+	}
+
+	// Quorum = (BoothSize/3)*2 + 1
+	// Threshold = Quorum - 1
 }
 
 const (

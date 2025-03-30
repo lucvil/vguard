@@ -6,64 +6,86 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
+
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/share"
 	"go.dedis.ch/kyber/v3/sign/bls"
 	"go.dedis.ch/kyber/v3/sign/tbls"
-	"os"
 )
 
 var suite = bn256.NewSuite()
 
-//var ServerSecrets [][]byte
-var PublicPoly *share.PubPoly
-var PrivateShare *share.PriShare
+// // var ServerSecrets [][]byte
+// var PublicPoly *share.PubPoly
+// var PrivateShare *share.PriShare
 
-func fetchKeys(t, id int) {
+func fetchKeysByBoothId(t, id, boothId, blockchainId int) (*share.PubPoly, *share.PriShare) {
 	//var keys KeyMaster
 	//keys.FetchKeys(t, id)
 	var err error
 
-	PublicPoly, err = fetchPubPoly(t)
+	PublicPoly, err := fetchPubPoly(t, boothId, blockchainId)
 	if err != nil {
 		log.Error(err)
 		panic(errors.New("fetchPubPoly failed"))
 	}
 
-	PrivateShare, err = fetchPriShare(id, t)
+	PrivateShare, err := fetchPriShare(id, t, boothId, blockchainId)
 	if err != nil {
 		log.Error(err)
 		panic(errors.New("fetchPriShare failed"))
 	}
 
-	return
+	return PublicPoly, PrivateShare
 }
 
-type KeyMaster struct {
-	PubPoly  *share.PubPoly
-	PriShare *share.PriShare
-	path     string
-}
+// func fetchKeys(t, id int) {
+// 	//var keys KeyMaster
+// 	//keys.FetchKeys(t, id)
+// 	var err error
 
-func (k *KeyMaster) FetchKeys(t, id int) {
-	pub, err := fetchPubPoly(t)
-	if err != nil {
-		log.Error(err)
-		panic(errors.New("fetchPubPoly failed"))
-	}
-	k.PubPoly = pub
+// 	PublicPoly, err = fetchPubPoly(t)
+// 	if err != nil {
+// 		log.Error(err)
+// 		panic(errors.New("fetchPubPoly failed"))
+// 	}
 
-	pris, err := fetchPriShare(id, t)
-	if err != nil {
-		log.Error(err)
-		panic(errors.New("fetchPriShare failed"))
-	}
-	k.PriShare = pris
-}
+// 	PrivateShare, err = fetchPriShare(id, t)
+// 	if err != nil {
+// 		log.Error(err)
+// 		panic(errors.New("fetchPriShare failed"))
+// 	}
 
-func fetchPubPoly(t int) (*share.PubPoly, error) {
-	readPubPoly, err := os.Open("./keys/vguard_pub.dupe")
+// 	return
+// }
+
+// type KeyMaster struct {
+// 	PubPoly  *share.PubPoly
+// 	PriShare *share.PriShare
+// 	path     string
+// }
+
+// func (k *KeyMaster) FetchKeys(t, id int) {
+// 	pub, err := fetchPubPoly(t)
+// 	if err != nil {
+// 		log.Error(err)
+// 		panic(errors.New("fetchPubPoly failed"))
+// 	}
+// 	k.PubPoly = pub
+
+// 	pris, err := fetchPriShare(id, t)
+// 	if err != nil {
+// 		log.Error(err)
+// 		panic(errors.New("fetchPriShare failed"))
+// 	}
+// 	k.PriShare = pris
+// }
+
+func fetchPubPoly(t, boothId, blockchainId int) (*share.PubPoly, error) {
+	readPubPoly, err := os.Open("./keys/" + strconv.Itoa(blockchainId) + "/" + strconv.Itoa(boothId) + "/vguard_pub.dupe")
 
 	if err != nil {
 		return nil, err
@@ -107,7 +129,7 @@ func fetchPubPoly(t int) (*share.PubPoly, error) {
 	return share.NewPubPoly(suite.G2(), suite.G2().Point().Base(), commits), nil
 }
 
-func fetchPriShare(serverId int, t int) (*share.PriShare, error) {
+func fetchPriShare(serverId int, t int, boothId int, blockchainId int) (*share.PriShare, error) {
 	suite := bn256.NewSuite()
 	rand := suite.RandomStream()
 	secret := suite.G1().Scalar().Pick(rand)
@@ -115,7 +137,7 @@ func fetchPriShare(serverId int, t int) (*share.PriShare, error) {
 
 	priShare := priPoly.Shares(1)[0]
 
-	readPriShare, err := os.Open(fmt.Sprintf("./keys/pri_%d.dupe", serverId))
+	readPriShare, err := os.Open(fmt.Sprintf("./keys/%d/%d/pri_%d.dupe", blockchainId, boothId, serverId))
 	if err != nil {
 		return nil, err
 	}
@@ -161,8 +183,8 @@ func getDigest(x []byte) []byte {
 //	return digest[:], sig, err
 //}
 
-func PenSign(msg []byte) ([]byte, error) {
-	return tbls.Sign(suite, PrivateShare, msg)
+func PenSign(msg []byte, privateShare *share.PriShare) ([]byte, error) {
+	return tbls.Sign(suite, privateShare, msg)
 }
 
 func PenVerifyPartially(msg, sig []byte, pub *share.PubPoly) error {
@@ -173,8 +195,14 @@ func PenVerifyPartially(msg, sig []byte, pub *share.PubPoly) error {
 //	return penKeyGen.Verify(suite, PublicPoly, msg, sig)
 //}
 
-func PenRecovery(sigShares [][]byte, msg *[]byte, pub *share.PubPoly) ([]byte, error) {
-	sig, err := tbls.Recover(suite, pub, *msg, sigShares, Threshold, BoothSize)
+func PenRecovery(sigShares [][]byte, msg *[]byte, pub *share.PubPoly, boothSize int) ([]byte, error) {
+	threshold := getThreshold(boothSize)
+	sig, err := tbls.Recover(suite, pub, *msg, sigShares, threshold, boothSize)
+	if err != nil {
+		// 詳細なエラーログを追加
+		log.Errorf("PenRecovery failed: %v | suite: %+v | threshold: %d | boothSize: %d", err, suite, threshold, boothSize)
+		return nil, err
+	}
 	return sig, err
 }
 

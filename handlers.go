@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"net"
+	"slices"
 	"sync"
 )
 
@@ -27,6 +28,17 @@ func initConns(numOfServers int) {
 	for i := 0; i < len(dialogMgr.conns); i++ {
 		dialogMgr.conns[i] = make(map[ServerId]ConnDock)
 	}
+}
+
+func initGob() {
+	gob.Register(BetweenProposerMsg{})
+	gob.Register(ProposerOPAEntry{})
+	gob.Register(ValidatorOPAReply{})
+	gob.Register(ProposerOPBEntry{})
+	gob.Register(ProposerCPAEntry{})
+	gob.Register(ValidatorCPAReply{})
+	gob.Register(ProposerCPBEntry{})
+	gob.Register(ValidatorCPBReply{})
 }
 
 var dialogMgr = struct {
@@ -74,23 +86,57 @@ func dialSendBack(m interface{}, encoder *gob.Encoder, phaseNumber int) {
 	}
 }
 
-// proposer or validator
-func takingInitRoles(proposer ServerId) {
-	if proposer == ServerId(ServerID) {
-		// function of proposer
-		go runAsProposer(proposer)
-	} else {
-		proposerLookup.Lock()
-		for i := 0; i < NOP; i++ {
-			proposerLookup.m[Phase(i)] = proposer
-		}
-		proposerLookup.Unlock()
+func dialSendBackWithComCheck(m interface{}, encoder *gob.Encoder, phaseNumber int, recipientProposerId ServerId) {
 
+	needDetour, detourNextNode := checkComPathToProposer(int(recipientProposerId))
+	if needDetour {
+		if detourNextNode == -1 {
+			log.Infof("server %v cannot communicate with any proposer", ServerID)
+			return
+		}
+
+		detourEncoder := dialogMgr.conns[phaseNumber][ServerId(detourNextNode)].enc
+
+		if detourEncoder == nil {
+			log.Errorf("%s | encoder is nil", rpyPhase[phaseNumber])
+		}
+		if err := detourEncoder.Encode(m); err != nil {
+			log.Errorf("%s | send back failed | err: %v", rpyPhase[phaseNumber], err)
+		}
+
+	} else {
+		if encoder == nil {
+			log.Errorf("%s | encoder is nil", rpyPhase[phaseNumber])
+		}
+		if err := encoder.Encode(m); err != nil {
+			log.Errorf("%s | send back failed | err: %v", rpyPhase[phaseNumber], err)
+		}
+	}
+
+}
+
+// proposer or validator
+// func takingInitRoles(proposer ServerId) {
+func takingInitRoles() {
+
+	proposerLookup.Lock()
+	for i := 0; i < NOP; i++ {
+		proposerLookup.m[Phase(i)] = ProposerList
+	}
+
+	proposerLookup.Unlock()
+
+	if slices.Contains(ProposerList, ServerId(ServerID)) {
+		// if proposer == ServerId(ServerID) {
+		// function of proposer
+		go runAsProposer(ServerId(ServerID))
+
+	} else {
 		// function of validator
 		go runAsValidator()
 	}
 }
 
 func start() {
-	takingInitRoles(ServerId(0))
+	takingInitRoles()
 }

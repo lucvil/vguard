@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"reflect"
 	"time"
 )
 
@@ -13,17 +14,25 @@ func runAsValidator() {
 	defer proposerLookup.RUnlock()
 	proposerLookup.RLock()
 
-	registerDialConn(proposerLookup.m[OPA], OPA, ListenerPortOPA)
-	registerDialConn(proposerLookup.m[OPB], OPB, ListenerPortOPB)
-	registerDialConn(proposerLookup.m[CPA], CPA, ListenerPortOCA)
-	registerDialConn(proposerLookup.m[CPB], CPB, ListenerPortOCB)
+	fetchValToProComTimeMap([]ServerId{ServerId(ServerID)})
+
+	for _, coordinatorId := range proposerLookup.m[OPA] {
+		registerDialConn(coordinatorId, OPA, ListenerPortOPA)
+		registerDialConn(coordinatorId, OPB, ListenerPortOPB)
+		registerDialConn(coordinatorId, CPA, ListenerPortOCA)
+		registerDialConn(coordinatorId, CPB, ListenerPortOCB)
+		registerDialConn(coordinatorId, TIME, ListenerPortTIME)
+	}
 
 	log.Debugf("... registerDialConn completed ...")
 
-	go receivingOADialMessages(proposerLookup.m[OPA])
-	go receivingOBDialMessages(proposerLookup.m[OPB])
-	go receivingCADialMessages(proposerLookup.m[CPA])
-	go receivingCBDialMessages(proposerLookup.m[CPB])
+	for index, _ := range proposerLookup.m[OPA] {
+		go receivingOADialMessages(proposerLookup.m[OPA][index])
+		go receivingOBDialMessages(proposerLookup.m[OPB][index])
+		go receivingCADialMessages(proposerLookup.m[CPA][index])
+		go receivingCBDialMessages(proposerLookup.m[CPB][index])
+		go receivingTIMEDialMessages(proposerLookup.m[TIME][index])
+	}
 }
 
 func registerDialConn(coordinatorId ServerId, phaseNumber Phase, portNumber int) {
@@ -31,7 +40,7 @@ func registerDialConn(coordinatorId ServerId, phaseNumber Phase, portNumber int)
 	coordinatorListenerPort := ServerList[coordinatorId].Ports[portNumber]
 	coordinatorAddress := coordinatorIp + ":" + coordinatorListenerPort
 
-	conn, err := establishDialConn(coordinatorAddress, int(phaseNumber))
+	conn, err := establishDialConn(coordinatorId, coordinatorAddress, int(phaseNumber))
 	if err != nil {
 		log.Errorf("dialog to coordinator %v failed | error: %v", phaseNumber, err)
 		return
@@ -48,17 +57,36 @@ func registerDialConn(coordinatorId ServerId, phaseNumber Phase, portNumber int)
 	}
 	dialogMgr.Unlock()
 
+	blockchainInfo.Lock()
+	if blockchainInfo.m[int(coordinatorId)] == nil {
+		blockchainInfo.m[int(coordinatorId)] = make(map[Phase]ServerId)
+	}
+	blockchainInfo.m[int(coordinatorId)][phaseNumber] = coordinatorId
+	blockchainInfo.Unlock()
+
 	log.Infof("dial conn of Phase %d has registered | dialogMgr.conns[phaseNumber: %d][coordinatorId: %d]: localconn: %s, remoteconn: %s",
 		phaseNumber, phaseNumber, coordinatorId, dialogMgr.conns[phaseNumber][coordinatorId].conn.LocalAddr().String(),
 		dialogMgr.conns[phaseNumber][coordinatorId].conn.RemoteAddr().String())
 }
 
-func establishDialConn(coordListenerAddr string, phase int) (*net.TCPConn, error) {
+func establishDialConn(coordinatorId ServerId, coordListenerAddr string, phase int) (*net.TCPConn, error) {
 	var e error
 
 	coordTCPListenerAddr, err := net.ResolveTCPAddr("tcp4", coordListenerAddr)
 	if err != nil {
 		panic(err)
+	}
+
+	coordinatorIndex := -1
+	for i, v := range ProposerList {
+		if v == coordinatorId {
+			coordinatorIndex = i
+			break
+		}
+	}
+
+	if coordinatorIndex == -1 {
+		panic(errors.New("coordinator not found in ProposerList"))
 	}
 
 	ServerList[ServerID].RLock()
@@ -68,13 +96,15 @@ func establishDialConn(coordListenerAddr string, phase int) (*net.TCPConn, error
 
 	switch phase {
 	case OPA:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPA]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPA+coordinatorIndex*NOP*2]
 	case OPB:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPB]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortOPB+coordinatorIndex*NOP*2]
 	case CPA:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPA]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPA+coordinatorIndex*NOP*2]
 	case CPB:
-		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPB]
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortCPB+coordinatorIndex*NOP*2]
+	case TIME:
+		myDialAddr = myDialAdrIp + ":" + ServerList[ServerID].Ports[DialPortTIME+coordinatorIndex*NOP*2]
 	default:
 		panic(errors.New("wrong phase name"))
 	}
@@ -115,7 +145,8 @@ func receivingOADialMessages(coordinatorId ServerId) {
 		err := postPhaseDialogInfo.dec.Decode(&m)
 
 		if err == io.EOF {
-			log.Errorf("%v | coordinator closed connection | err: %v", time.Now(), err)
+			nowTime := time.Now().UnixMilli()
+			log.Errorf("%v | coordinator closed connection | err: %v, time=%d", rpyPhase[OPA], err, nowTime)
 			log.Warnf("Lost connection with the proposer (S%v); quitting program", postPhaseDialogInfo.SID)
 			vgInst.Done()
 			break
@@ -125,6 +156,8 @@ func receivingOADialMessages(coordinatorId ServerId) {
 			log.Errorf("Gob Decode Err: %v", err)
 			continue
 		}
+
+		log.Infof("start ordering of block %d, Timestamp: %d, BlockchainId: %d", m.BlockId, time.Now().UnixMilli(), m.BlockchainId)
 
 		//メッセージとエンコーダー（orderPhaseDialogInfo.enc）が渡されます
 		go validatingOAEntry(&m, orderPhaseDialogInfo.enc)
@@ -143,17 +176,78 @@ func receivingOBDialMessages(coordinatorId ServerId) {
 		err := orderPhaseDialogInfo.dec.Decode(&m)
 
 		if err == io.EOF {
-			log.Errorf("%s | coordinator closed connection | err: %v", rpyPhase[OPB], err)
+			nowTime := time.Now().UnixMilli()
+			log.Errorf("%s | coordinator closed connection | err: %v, time=%d", rpyPhase[OPB], err, nowTime)
 			break
 		}
 
+		// if err != nil {
+		// 	log.Errorf("%s | gob Decode Err: %v, ServerId: %d", rpyPhase[OPB], err, int(coordinatorId))
+		// 	log.Errorf("The type of the message is:", reflect.TypeOf())
+		// 	continue
+		// }
+
 		if err != nil {
-			log.Errorf("%s | gob Decode Err: %v", rpyPhase[OPB], err)
+			log.Errorf("%s | gob Decode Err: %v, ServerId: %d", rpyPhase[OPB], err, int(coordinatorId))
+
+			// interface{} にデコードして型を確認する
+			var unknownMessage interface{}
+			err = orderPhaseDialogInfo.dec.Decode(&unknownMessage)
+			if err == nil {
+				// 型を調べてログに出力
+				log.Infof("Received a message of type: %v", reflect.TypeOf(unknownMessage))
+			} else {
+				// デコードに失敗した場合もログに出力
+				log.Errorf("Failed to decode message for type detection: %v", err)
+			}
 			continue
 		}
 
 		go validatingOBEntry(&m, commitPhaseDialogInfo.enc)
 	}
+
+	// for {
+	// 	// データをバッファリングするためのバッファ
+	// 	var buf bytes.Buffer
+
+	// 	// 一時的に 1024 バイトを読み込む（適宜サイズを調整）
+	// 	_, err := io.CopyN(&buf, orderPhaseDialogInfo.conn, 1024)
+	// 	if err != nil && err != io.EOF {
+	// 		log.Errorf("Failed to read message data: %v", err)
+	// 		continue
+	// 	}
+
+	// 	// バッファからgobデコードを試みる
+	// 	dec := gob.NewDecoder(&buf)
+	// 	var m ProposerOPBEntry
+	// 	err = dec.Decode(&m)
+
+	// 	if err == io.EOF {
+	// 		nowTime := time.Now().UnixMilli()
+	// 		log.Errorf("%s | coordinator closed connection | err: %v, time=%d", rpyPhase[OPB], err, nowTime)
+	// 		break
+	// 	}
+
+	// 	// エラーが発生したら型を確認
+	// 	if err != nil {
+	// 		log.Errorf("%s | gob Decode Err: %v, ServerId: %d", rpyPhase[OPB], err, int(coordinatorId))
+
+	// 		// バッファを再利用して型を確認する
+	// 		var unknownMessage interface{}
+	// 		dec = gob.NewDecoder(&buf) // 同じバッファを使ってもう一度デコード
+	// 		err = dec.Decode(&unknownMessage)
+	// 		if err == nil {
+	// 			// 型を調べてログに出力
+	// 			log.Infof("Received a message of type: %v", reflect.TypeOf(unknownMessage))
+	// 		} else {
+	// 			log.Errorf("Failed to decode message for type detection: %v", err)
+	// 		}
+	// 		continue
+	// 	}
+
+	// 	// 正常にデコードできた場合の処理
+	// 	go validatingOBEntry(&m, commitPhaseDialogInfo.enc)
+	// }
 }
 
 func receivingCADialMessages(coordinatorId ServerId) {
@@ -176,7 +270,9 @@ func receivingCADialMessages(coordinatorId ServerId) {
 			continue
 		}
 
+		log.Infof("start consensus of consInstId: %d,Timestamp: %d, lenBlockRange: %d, BlockchainId: %d", m.ConsInstID, time.Now().UnixMilli(), len(m.BIDs), m.BlockchainId)
 		go validatingCAEntry(&m, CADialogInfo.enc)
+
 	}
 }
 
@@ -199,7 +295,39 @@ func receivingCBDialMessages(coordinatorId ServerId) {
 			log.Errorf("%v: Gob Decode Err: %v", rpyPhase[CPB], err)
 			continue
 		}
-
+		log.Infof("start consensus phase b validation of consInstId: %d,Timestamp: %d, BlockchainId: %d", m.ConsInstID, time.Now().UnixMilli(), m.BlockchainId)
 		go validatingCBEntry(&m, CBDialogInfo.enc)
 	}
+}
+
+func receivingTIMEDialMessages(coordinatorId ServerId) {
+	dialogMgr.RLock()
+	TIMEDialogInfo := dialogMgr.conns[TIME][coordinatorId]
+	dialogMgr.RUnlock()
+
+	for {
+		var m simulationStartTimeSyncMessage
+
+		err := TIMEDialogInfo.dec.Decode(&m)
+
+		if err == io.EOF {
+			log.Errorf("%v: Coordinator closed connection | err: %v", rpyPhase[TIME], err)
+			break
+		}
+
+		if err != nil {
+			log.Errorf("%v: Gob Decode Err: %v", rpyPhase[TIME], err)
+			continue
+		}
+
+		go syncSimulationStartTIme(&m)
+	}
+}
+
+func syncSimulationStartTIme(m *simulationStartTimeSyncMessage) {
+	simulationStartTime.Lock()
+	if simulationStartTime.time < m.Time {
+		simulationStartTime.time = m.Time
+	}
+	simulationStartTime.Unlock()
 }

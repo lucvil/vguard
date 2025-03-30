@@ -34,15 +34,33 @@ var log = logrus.New()
 var metre latencyMetre
 var vgInst sync.WaitGroup
 
+var simulationStartTime = struct {
+	sync.RWMutex
+	time int64
+}{}
+
+// var simulationStartTime int64
+// var participantVehicleTimeData map[string]map[ServerId][]int
+var participantVehicleTimeData map[string][]int
+
 func init() {
 	//初期パラメータを設定
 	loadCmdParameters()
 	//ログファイルを設定
 	setLogger()
 	//config/cluster_localhost.confからサーバー情報をさがす
+	//サーバー情報を取り出し変数としてほぞん（loadconf.go）
+	//ServerList, serverIdLookup変数を更新
 	parseConf(NumOfConn)
-	fetchKeys(Threshold, ServerID)
+	// fetchKeys(Threshold, ServerID)
+	//concierge, dialogMgr変数を更新
+	// 要変更
 	initConns(NumOfConn)
+
+	initGob()
+
+	// fetchArteryData()
+
 	metre.init()
 
 	fmt.Printf("-------------------------------\n")
@@ -54,8 +72,12 @@ func init() {
 	fmt.Printf("| Log level\t| %3d\t|\n", LogLevel)
 	fmt.Printf("| Init role\t| %3d\t|\n", Role)
 	fmt.Printf("| # of servers\t| %3d\t|\n", NumOfConn)
-	fmt.Printf("| Booth size\t| %3d\t|\n", BoothSize)
-	fmt.Printf("| Quorum size\t| %3d\t|\n", Quorum)
+	// fmt.Printf("| Booth size\t| %3d\t|\n", BoothSize)
+	// fmt.Printf("| Quorum size\t| %3d\t|\n", Quorum)
+	fmt.Printf("| Network delay\t| %3d\t|\n", Delay)
+	fmt.Printf("| Vechile speed\t| %3d\t|\n", VehicleSpeed)
+	fmt.Printf("| Proposer List\t| %v\t|\n", ProposerList)
+	fmt.Printf("| Main Proposer\t| %d\t|\n", MainProposerId)
 	fmt.Printf("-------------------------------\n")
 	if PlainStorage {
 		fmt.Printf("|-- Log shows at ./logs/s%d --|\n", ServerID)
