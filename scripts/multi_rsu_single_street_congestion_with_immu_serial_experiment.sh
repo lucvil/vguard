@@ -8,7 +8,7 @@ VEHICLE_SPEED=80
 COM_POSSIBILITY_FLAG=true
 ALLOW_BYPASS_FLAG=true
 # MAIN_PROPOSER_LIST=$(seq -s, 0 $((PROPOSER_NUM - 1)))
-MAIN_PROPOSER_LIST=(1)
+MAIN_PROPOSER_LIST=(0 1 2)
 
 # スタックサイズの制限を解除
 ulimit -s unlimited

@@ -112,3 +112,29 @@ V-Guard offers a solution to the trust and accountability issues associated with
 - <span style="color:indigo;">**Integrity in data management.</span>** V-Guard prevents data tampering. There is no room for manipulation or concealment of evidence by either drivers or manufacturers. V-Guard ensures that data cannot be fabricated or deleted, even if it goes against the interests of the parties involved in legal proceedings
 - <span style="color:indigo;">**Accountability in data management.</span>** V-Guard promotes data accountability and ownership protections, creating a trusted environment within the industry, and ensuring compliance with data management regulations, such as GDPR and CPRA.
 |
+
+
+# New Run Vguard Instruction
+
+I changed Vguard Code, so the run instruction was changed.
+    
+    // key generation and build will be done in code or scripts so it is not needed
+    // You need only run scripts file
+
+    //Before you run below scripts, you must change three variable in mmu.go
+    // arteryFilePath (in fetchArteryData() function)
+    // filePath (in fetchProToValComTimeMap() function)
+    // filePath (in fetchValToProComTimeMap() function)
+
+    // if you want to run multi_rsu_congestion_with_immu scenario
+    ./scripts/multi_rus_congestion_with_immu_serial_experiment.sh
+
+    // if you want to run multi_rsu_congestion(without immu) scenario
+    ./scripts/multi_rus_congestion_serial_experiment.sh
+
+    // if you want to run multi_rsu_fixed vehicle_num scenario
+    ./scripts/multi_rsu_congestion_serial_experiment
+
+
+
+
