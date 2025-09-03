@@ -2,6 +2,7 @@ import csv
 import re
 import os
 import sys
+import random
 
 def extract_proposer_logs(file_path):
     ordering_event = {}
@@ -250,11 +251,12 @@ print(allow_bypass_flag)
 
 log_file = "./logs/s" +  str(main_proposer_id) + "/n_" + str(participant_size) + "_b100_d" + str(network_delay) + ".log"
 proposer_ordering_event, proposer_consensus_event = extract_proposer_logs(log_file)
+ran_int = random.randint(1, 100)
 
 if allow_bypass_flag:
-    result_csv_folder = "./results/multi_rsu_congestion_fixed_vehicle_num/fixed_v25/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/" + str(main_proposer_id) + "/"
+    result_csv_folder = "./results/multi_rsu_congestion_fixed_vehicle_num/fixed_v5/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/" + str(main_proposer_id) + "/"+str(ran_int)+"/"
 else:
-    result_csv_folder = "./results/multi_rsu_congestion_fixed_vehicle_num/fixed_v25/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/" + str(main_proposer_id) + "/"
+    result_csv_folder = "./results/multi_rsu_congestion_fixed_vehicle_num/fixed_v5/n" + str(participant_size) + "/m" + str(message_size) + "/d" + str(network_delay) + "/" + str(main_proposer_id) + "/"+str(ran_int)+"/"
 
 if not os.path.exists(result_csv_folder):
     os.makedirs(result_csv_folder)

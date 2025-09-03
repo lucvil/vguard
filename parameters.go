@@ -12,7 +12,7 @@ const NOP = 5 // Number of phases 4+1(TIME)
 
 const MaxQueue = 10_000_000
 
-const ArterySimulationDelay = 200.0
+const ArterySimulationDelay = 200.0 //origina 200.0
 const InitialSyncBufferTime = 100.0
 
 const (
