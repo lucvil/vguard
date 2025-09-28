@@ -216,8 +216,13 @@ func handleOPBConns(sConn *net.TCPConn, sid ServerId) {
 				dialogMgr.RLock()
 				sendDialogInfo := dialogMgr.conns[OPB][blockchainInfo.m[m.BlockchainId][OPB]]
 				dialSendBack(sendMessage, sendDialogInfo.enc, OPB)
+
 				continue
 			}
+
+			//bypass log
+			nowTime := time.Now().UnixMilli()
+			log.Infof("receive of Phase: OPB, BlockchainId: %d, BlockId: %d, Validator: %d, needDetourFlag: %t,time: %v", m.BlockchainId, m.BlockId, int(sid), false, nowTime)
 
 			go asyncHandleOBReply(&m, sid)
 		} else if err == io.EOF {
@@ -265,6 +270,10 @@ func handleCPAConns(sConn *net.TCPConn, sid ServerId) {
 				dialSendBack(sendMessage, sendDialogInfo.enc, CPA)
 				continue
 			}
+
+			//bypass log
+			nowTime := time.Now().UnixMilli()
+			log.Infof("receive of Phase: CPA, BlockchainId: %d, consInstId: %d, Validator: %d, needDetourFlag: %t, time: %v", m.BlockchainId, m.ConsInstID, int(sid), false, nowTime)
 
 			go asyncHandleCPAReply(&m, sid)
 		} else {
@@ -354,6 +363,10 @@ func handleProposerOPBConns(sConn *net.TCPConn, sid ServerId) {
 				continue
 			}
 
+			//bypass log
+			nowTime := time.Now().UnixMilli()
+			log.Infof("receive of Phase: OPB, BlockchainId: %d, BlockId: %d, Validator: %d, needDetourFlag: %t,time: %v", m.BlockchainId, m.BlockId, receivedMessage.Sender, true, nowTime)
+
 			go asyncHandleOBReply(&m, ServerId(receivedMessage.Sender))
 		} else if err == io.EOF {
 			log.Errorf("%s | server %v closed connection | err: %v", cmdPhase[OPB], sid, err)
@@ -393,6 +406,11 @@ func handleProposerCPAConns(sConn *net.TCPConn, sid ServerId) {
 				log.Errorf("Failed to cast message to ValidatorCPAReply | received type: %T", receivedMessage.Message)
 				continue
 			}
+
+			//bypass log
+			nowTime := time.Now().UnixMilli()
+			log.Infof("receive of Phase: CPA, BlockchainId: %d, consInstId: %d, Validator: %d, needDetourFlag: %t, time: %v", m.BlockchainId, m.ConsInstID, receivedMessage.Sender, true, nowTime)
+
 			go asyncHandleCPAReply(&m, ServerId(receivedMessage.Sender))
 		} else {
 			log.Errorf("received message is nil")

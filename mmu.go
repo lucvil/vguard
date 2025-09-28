@@ -72,13 +72,13 @@ func fetchArteryData() {
 
 	//Experiments when there is a difference in participating vehicles between RSUs,multi_rsu_congestion
 	//randomな車両割当実験（rsu congestion）
-	// arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed70_30/250vehicle/" + strconv.Itoa(ServerID) + "/random_decided_participant_node_" + strconv.Itoa(ServerID) + ".json"
+	arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed70_30/250vehicle/" + strconv.Itoa(ServerID) + "/10s_interval_random_decided_participant_node_" + strconv.Itoa(ServerID) + ".json"
 
 	//immuを使用した車両割当実験
 	// arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed70_30/250vehicle/" + strconv.Itoa(ServerID) + "/immu_wd_decided_participant_node_" + strconv.Itoa(ServerID) + ".json"
 
 	//一番近いrsuに車両を割り当てた実験
-	arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed70_30/250vehicle/" + strconv.Itoa(ServerID) + "/communication_node_for_vguard_" + strconv.Itoa(ServerID) + ".json"
+	// arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/speed70_30/250vehicle/" + strconv.Itoa(ServerID) + "/communication_node_for_vguard_" + strconv.Itoa(ServerID) + ".json"
 
 	//車両数を固定して再実験(強化学習のモデルデータ取り)
 	// arteryFilePath := "../artery/scenarios/multiple-rsu-street-congestion/results/fixed_v5/" + strconv.Itoa(ServerID) + "/immu_participant_node_" + strconv.Itoa(ServerID) + ".json"
@@ -363,6 +363,19 @@ func broadcastToBooth(e interface{}, phase int, boothID int) {
 			continue
 		}
 
+		// log
+		nowTime := time.Now().UnixMilli()
+		switch e.(type) {
+		case ProposerOPAEntry:
+			log.Infof("broadcast of Phase: OPA, BlockchainId: %d, BlockId: %d, Validator: %d, needDetourFlag: %t,time: %v", e.(ProposerOPAEntry).BlockchainId, e.(ProposerOPAEntry).BlockId, i, false, nowTime)
+		case ProposerOPBEntry:
+			log.Infof("broadcast of Phase: OPB, BlockchainId: %d, BlockId: %d, Validator: %d, needDetourFlag: %t, time: %v", e.(ProposerOPBEntry).BlockchainId, e.(ProposerOPBEntry).BlockId, i, false, nowTime)
+		case ProposerCPAEntry:
+			log.Infof("broadcast of Phase: CPA, BlockchainId: %d, consInstId: %d, Validator: %d, needDetourFlag: %t, time: %v", e.(ProposerCPAEntry).BlockchainId, e.(ProposerCPAEntry).ConsInstID, i, false, nowTime)
+		case ProposerCPBEntry:
+			log.Infof("broadcast of Phase: CPB, BlockchainId: %d, consInstId: %d, Validator: %d, needDetourFlag: %t, time: %v", e.(ProposerCPBEntry).BlockchainId, e.(ProposerCPBEntry).ConsInstID, i, false, nowTime)
+		}
+
 		err := concierge.n[phase][i].enc.Encode(e)
 		if err != nil {
 			broadcastError = true
@@ -400,6 +413,19 @@ func broadcastToNewBooth(regularMsg interface{}, phase int, boothID int, newMemb
 		if concierge.n[phase][i] == nil {
 			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:c", i, phase, regularMsg)
 			continue
+		}
+
+		// log追加
+		nowTime := time.Now().UnixMilli()
+		switch regularMsg.(type) {
+		case ProposerOPAEntry:
+			log.Infof("broadcast of Phase: OPA, BlockchainId: %d, BlockId: %d, Validator: %d, needDetourFlag: %t,time: %v", regularMsg.(ProposerOPAEntry).BlockchainId, regularMsg.(ProposerOPAEntry).BlockId, i, false, nowTime)
+		case ProposerOPBEntry:
+			log.Infof("broadcast of Phase: OPB, BlockchainId: %d, BlockId: %d, Validator: %d, needDetourFlag: %t, time: %v", regularMsg.(ProposerOPBEntry).BlockchainId, regularMsg.(ProposerOPBEntry).BlockId, i, false, nowTime)
+		case ProposerCPAEntry:
+			log.Infof("broadcast of Phase: CPA, BlockchainId: %d, consInstId: %d, Validator: %d, needDetourFlag: %t, time: %v", regularMsg.(ProposerCPAEntry).BlockchainId, regularMsg.(ProposerCPAEntry).ConsInstID, i, false, nowTime)
+		case ProposerCPBEntry:
+			log.Infof("broadcast of Phase: CPB, BlockchainId: %d, consInstId: %d, Validator: %d, needDetourFlag: %t, time: %v", regularMsg.(ProposerCPBEntry).BlockchainId, regularMsg.(ProposerCPBEntry).ConsInstID, i, false, nowTime)
 		}
 
 		newMemberFlag := false
@@ -521,6 +547,19 @@ func broadcastToBoothWithComCheck(e interface{}, phase int, boothID int) {
 			continue
 		}
 
+		// log
+		nowTime := time.Now().UnixMilli()
+		switch e.(type) {
+		case ProposerOPAEntry:
+			log.Infof("broadcast of Phase: OPA, BlockchainId: %d, BlockId: %d, Validator: %d, needDetourFlag: %t,time: %v", e.(ProposerOPAEntry).BlockchainId, e.(ProposerOPAEntry).BlockId, i, needDetour, nowTime)
+		case ProposerOPBEntry:
+			log.Infof("broadcast of Phase: OPB, BlockchainId: %d, BlockId: %d, Validator: %d, needDetourFlag: %t, time: %v", e.(ProposerOPBEntry).BlockchainId, e.(ProposerOPBEntry).BlockId, i, needDetour, nowTime)
+		case ProposerCPAEntry:
+			log.Infof("broadcast of Phase: CPA, BlockchainId: %d, consInstId: %d, Validator: %d, needDetourFlag: %t, time: %v", e.(ProposerCPAEntry).BlockchainId, e.(ProposerCPAEntry).ConsInstID, i, needDetour, nowTime)
+		case ProposerCPBEntry:
+			log.Infof("broadcast of Phase: CPB, BlockchainId: %d, consInstId: %d, Validator: %d, needDetourFlag: %t, time: %v", e.(ProposerCPBEntry).BlockchainId, e.(ProposerCPBEntry).ConsInstID, i, needDetour, nowTime)
+		}
+
 		err := concierge.n[phase][nextNode].enc.Encode(message)
 		if err != nil {
 			broadcastError = true
@@ -572,6 +611,19 @@ func broadcastToNewBoothWithComCheck(regularMsg interface{}, phase int, boothID 
 		if concierge.n[phase][nextNode] == nil {
 			log.Errorf("server %v is not registered in phase %v | msg tried to sent %v:e", nextNode, phase, regularMsg)
 			continue
+		}
+
+		//log
+		nowTime := time.Now().UnixMilli()
+		switch regularMsg.(type) {
+		case ProposerOPAEntry:
+			log.Infof("broadcast of Phase: OPA, BlockchainId: %d, BlockId: %d, Validator: %d, needDetourFlag: %t,time: %v", regularMsg.(ProposerOPAEntry).BlockchainId, regularMsg.(ProposerOPAEntry).BlockId, i, needDetour, nowTime)
+		case ProposerOPBEntry:
+			log.Infof("broadcast of Phase: OPB, BlockchainId: %d, BlockId: %d, Validator: %d, needDetourFlag: %t, time: %v", regularMsg.(ProposerOPBEntry).BlockchainId, regularMsg.(ProposerOPBEntry).BlockId, i, needDetour, nowTime)
+		case ProposerCPAEntry:
+			log.Infof("broadcast of Phase: CPA, BlockchainId: %d, consInstId: %d, Validator: %d, needDetourFlag: %t, time: %v", regularMsg.(ProposerCPAEntry).BlockchainId, regularMsg.(ProposerCPAEntry).ConsInstID, i, needDetour, nowTime)
+		case ProposerCPBEntry:
+			log.Infof("broadcast of Phase: CPB, BlockchainId: %d, consInstId: %d, Validator: %d, needDetourFlag: %t, time: %v", regularMsg.(ProposerCPBEntry).BlockchainId, regularMsg.(ProposerCPBEntry).ConsInstID, i, needDetour, nowTime)
 		}
 
 		newMemberFlag := false
