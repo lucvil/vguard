@@ -103,21 +103,23 @@ var (
 	NumOfConn       int
 	// BoothSize        int
 	// Threshold        int
-	LogLevel         int
-	ServerID         int
-	Delay            int
-	GC               bool
-	Role             int
-	PerfMetres       bool
-	PlainStorage     bool
-	LatMetreInterval int64
-	YieldCycle       int
-	EasingDuration   int
-	ConsWaitingSec   int
-	ConsInterval     int
-	ConfPath         string
-	VehicleSpeed     int
-	MainProposerId   int
+	LogLevel            int
+	ServerID            int
+	Delay               int
+	GC                  bool
+	Role                int
+	PerfMetres          bool
+	PlainStorage        bool
+	LatMetreInterval    int64
+	YieldCycle          int
+	EasingDuration      int
+	ConsWaitingSec      int
+	ConsInterval        int
+	ConfPath            string
+	VehicleSpeed        int
+	MainProposerId      int
+	UsePeriodicOrdering bool
+	OrderingPeriodMs    int
 
 	// for multiple proposer
 	ProposerList  []ServerId
@@ -190,7 +192,20 @@ func loadCmdParameters() {
 	flag.StringVar(&proposerIds, "pl", "", "comma-separated list of proposer IDs")
 	flag.IntVar(&MainProposerId, "mainp", 1, "main proposer id which make consensus")
 
+	//Ordering Mode (current or periodic)
+	flag.BoolVar(&UsePeriodicOrdering, "ordering-periodic", false,
+		"Ordering trigger mode: true=time-driven (ticker), false=batch-size-driven (current). Default=false")
+	flag.IntVar(&OrderingPeriodMs, "ordperiod", 20,
+		"Ordering period in milliseconds (effective only when --ordering-periodic=true)")
+
 	flag.Parse()
+
+	if OrderingPeriodMs < 1 {
+		OrderingPeriodMs = 1
+	}
+	if OrderingPeriodMs > 10_000 {
+		OrderingPeriodMs = 10_000
+	}
 
 	// Split the proposerIds into an array and convert to int
 	if proposerIds != "" {

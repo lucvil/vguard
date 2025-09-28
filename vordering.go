@@ -38,79 +38,58 @@ func (r *IDRecorder) GetLastIdx() int {
 	return r.lastIdx
 }
 
-//func (r *IDRecorder) GetLastConsPos() int {
-//	return r.lastIdx
-//}
-
-//func (r *IDRecorder) RecordConsPos()  {
-//	defer r.RUnlock()
-//	r.RLock()
-//	r.lastIdx = len(r.blockIDs)
-//}
-
-// collect order and make entry
 func startOrderingPhaseA(i int) {
-
-	shuffle := struct {
+	type shuffleBuf struct {
 		sync.RWMutex
 		counter int
 		entries map[int]Entry
-	}{
-		counter: 0,
-		entries: make(map[int]Entry)}
+	}
+	shuffle := shuffleBuf{
+		entries: make(map[int]Entry),
+	}
 
 	cycle := 0
 
-	for {
-		cycle++
-		m, ok := <-requestQueue[i]
-
-		if !ok {
-			log.Infof("requestQueue closed, quiting leader service (server %d)", ServerID)
+	// 共通：ブロック生成 → スナップショット登録 → ブロードキャスト
+	makeAndBroadcast := func(sh *shuffleBuf) {
+		sh.RLock()
+		if sh.counter == 0 {
+			sh.RUnlock()
 			return
 		}
-
-		entry := Entry{
-			TimeStamp: m.Timestamp,
-			Tx:        m.Transaction,
+		// コピーを取ってからロックを解放（ブロードキャスト中に参照しない）
+		localEntries := make(map[int]Entry, sh.counter)
+		for k := 0; k < sh.counter; k++ {
+			if e, ok := sh.entries[k]; ok {
+				localEntries[k] = e
+			}
 		}
+		sh.RUnlock()
 
-		shuffle.entries[shuffle.counter] = entry
-
-		shuffle.counter++
-		if shuffle.counter < BatchSize {
-			continue
-		}
-
-		// shuffle.counter >= BatchSize -> do below code
-
-		//blockchainIdは今の所ServerIDと一緒にする、proposerの変更はいまのところ考えない
+		// blockchainId は従来踏襲（ServerID）
 		var blockchainId = ServerID
 
-		serializedEntries, err := serialization(shuffle.entries)
+		serializedEntries, err := serialization(localEntries)
 		if err != nil {
-			log.Errorf("serialization failed, err: %v", err)
+			log.Errorf("serialization failed: %v", err)
 			return
 		}
 
 		newBlockId := getLogIndex()
-
 		orderingBoothID := getBoothID()
 
-		// create date for order phase a
 		postEntry := ProposerOPAEntry{
 			Booth:        booMgr.b[orderingBoothID],
 			BlockchainId: blockchainId,
 			BlockId:      newBlockId,
-			Entries:      shuffle.entries,
+			Entries:      localEntries,
 			Hash:         getDigest(serializedEntries),
 		}
 
-		//start time
 		nowTime := time.Now().UnixMilli()
-		log.Infof("start ordering of block %d, Timestamp: %d, Booth: %v", newBlockId, nowTime, booMgr.b[orderingBoothID].Indices)
+		log.Infof("start ordering of block %d, Timestamp: %d, Booth: %v",
+			newBlockId, nowTime, booMgr.b[orderingBoothID].Indices)
 
-		//peformance metre
 		if PerfMetres {
 			if newBlockId%LatMetreInterval == 0 {
 				metre.recordStartTime(newBlockId)
@@ -118,18 +97,16 @@ func startOrderingPhaseA(i int) {
 		}
 
 		incrementLogIndex()
-		//booth情報の更新コードを入れる
 
 		blockOrderFrag := blockSnapshot{
 			hash:    postEntry.Hash,
-			entries: shuffle.entries,
+			entries: localEntries,
 			sigs:    [][]byte{},
 			booth:   booMgr.b[orderingBoothID],
 		}
-
 		blockCommitFrag := blockSnapshot{
 			hash:    postEntry.Hash,
-			entries: shuffle.entries,
+			entries: localEntries,
 			sigs:    [][]byte{},
 			booth:   booMgr.b[orderingBoothID],
 		}
@@ -148,13 +125,15 @@ func startOrderingPhaseA(i int) {
 		cmtSnapshot.m[postEntry.BlockchainId][postEntry.BlockId] = &blockCommitFrag
 		cmtSnapshot.Unlock()
 
-		//clear shuffle variables
-		shuffle.counter = 0
-		shuffle.entries = make(map[int]Entry)
+		// 次バッチに備えてクリア（共有バッファ側）
+		sh.Lock()
+		sh.counter = 0
+		sh.entries = make(map[int]Entry)
+		sh.Unlock()
 
-		log.Infof("end ordering phase_a_pro of block %d,Timestamp: %d", postEntry.BlockId, time.Now().UnixMilli())
+		log.Infof("end ordering phase_a_pro of block %d, Timestamp: %d",
+			postEntry.BlockId, time.Now().UnixMilli())
 
-		//broadcast
 		if EvaluateComPossibilityFlag {
 			broadcastToBoothWithComCheck(postEntry, OPA, orderingBoothID)
 		} else {
@@ -172,6 +151,116 @@ func startOrderingPhaseA(i int) {
 
 		nowTime = time.Now().UnixMilli()
 		log.Infof("broadcast ordering of block %d, Timestamp: %d", newBlockId, nowTime)
+	}
+
+	// ===== モード切替 =====
+	if UsePeriodicOrdering {
+		// 時間ドリブン（Tick 到来でのみ 1 ブロック）
+		log.Infof("[ordering] mode=periodic (time-driven), period=%dms", OrderingPeriodMs)
+
+		ticker := time.NewTicker(time.Duration(OrderingPeriodMs) * time.Millisecond)
+		defer ticker.Stop()
+
+		for {
+			cycle++
+
+			// ---- バックプレッシャー：BatchSize 以上なら入力を止める（Tick まで）----
+			inCh := requestQueue[i]
+			shuffle.RLock()
+			bufCount := shuffle.counter
+			shuffle.RUnlock()
+			if bufCount >= BatchSize {
+				inCh = nil // select の受信分岐を無効化 → 送信側がブロック
+			}
+
+			select {
+			case m, ok := <-inCh:
+				if !ok {
+					log.Infof("requestQueue closed, quitting leader service (server %d)", ServerID)
+					return
+				}
+				// 受信時は「溜めるだけ」。BatchSize 到達でも切らない。
+				entry := Entry{TimeStamp: m.Timestamp, Tx: m.Transaction}
+				shuffle.Lock()
+				idx := shuffle.counter
+				shuffle.entries[idx] = entry
+				shuffle.counter++
+				shuffle.Unlock()
+
+			case <-ticker.C:
+				// Tick 到来時だけ 1 ブロック生成。
+				shuffle.RLock()
+				cnt := shuffle.counter
+				shuffle.RUnlock()
+				if cnt == 0 {
+					continue
+				}
+
+				// 取り出し数：min(counter, BatchSize)
+				takeN := BatchSize
+				if cnt < BatchSize {
+					takeN = cnt
+				}
+
+				// batch/rest を作成（順序保証が必要なら別途キュー化や key sort を検討）
+				batch := make(map[int]Entry, takeN)
+				rest := make(map[int]Entry, cnt-takeN)
+
+				shuffle.RLock()
+				for k := 0; k < cnt; k++ {
+					e, ok := shuffle.entries[k]
+					if !ok {
+						continue
+					}
+					if k < takeN {
+						batch[len(batch)] = e
+					} else {
+						rest[len(rest)] = e
+					}
+				}
+				shuffle.RUnlock()
+
+				// ---- 1 本だけ生成：一時的に buffer を batch に差し替えて makeAndBroadcast ----
+				shuffle.Lock()
+				shuffle.entries = batch
+				shuffle.counter = takeN
+				shuffle.Unlock()
+
+				makeAndBroadcast(&shuffle)
+
+				// 余りを復帰
+				shuffle.Lock()
+				shuffle.entries = rest
+				shuffle.counter = len(rest)
+				shuffle.Unlock()
+			}
+		}
+	} else {
+		// 従来：BatchSize 到達で即ブロック化
+		log.Infof("[ordering] mode=current (batch-size driven)")
+
+		for {
+			cycle++
+			m, ok := <-requestQueue[i]
+			if !ok {
+				log.Infof("requestQueue closed, quitting leader service (server %d)", ServerID)
+				return
+			}
+
+			entry := Entry{TimeStamp: m.Timestamp, Tx: m.Transaction}
+			shuffle.Lock()
+			idx := shuffle.counter
+			shuffle.entries[idx] = entry
+			shuffle.counter++
+			shouldCut := shuffle.counter >= BatchSize
+			shuffle.Unlock()
+
+			if !shouldCut {
+				continue
+			}
+			// BatchSize 到達で即ブロック化
+			makeAndBroadcast(&shuffle)
+		}
 	}
 }
 
